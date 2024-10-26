@@ -1,9 +1,4 @@
 using System;
-using System.Xml;
-using System.Xml.XPath;
-using System.Collections;
-using System.Text;
-using System.Runtime.Remoting.Messaging;
 
 namespace Schematron
 {

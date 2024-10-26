@@ -4,9 +4,6 @@ using System.Text;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.XPath;
-using System.Collections;
-using System.Threading;
-using System.Runtime.Remoting.Messaging;
 using Schematron.Formatters;
 
 namespace Schematron
@@ -328,7 +325,8 @@ namespace Schematron
                     var xs = XmlSchema.Read(new XmlTextReader(stringReader, nameTable), new ValidationEventHandler(validationHandler));
 
                     var set = new XmlSchemaSet();
-                    set.Add(targetNamespace, schemaUri);
+					set.XmlResolver = new XmlUrlResolver();
+					set.Add(targetNamespace, schemaUri);
 
                     if (!set.IsCompiled)
                     {
@@ -585,31 +583,12 @@ namespace Schematron
 			try
 			{
 				_evaluationctx.Schema = schema;
-				//_evaluationctx.Start();
-				StartDelegate st = new StartDelegate(_evaluationctx.Start);
-				WaitHandle wh = st.BeginInvoke(new AsyncCallback(EndValidation), 
-					_evaluationctx).AsyncWaitHandle;
-				wh.WaitOne();
+				_evaluationctx.Start();
 			}
 			catch (Exception ex)
 			{
 				System.Diagnostics.Debug.Fail(ex.Message, ex.ToString());
-				throw ex;
-			}
-		}
-
-		private void EndValidation(IAsyncResult result)
-		{
-			try
-			{
-				AsyncResult ar = (AsyncResult) result;
-				StartDelegate st = (StartDelegate) ar.AsyncDelegate;
-				st.EndInvoke(ar);
-			}
-			catch (Exception ex)
-			{
-				System.Diagnostics.Debug.Fail(ex.Message, ex.ToString());
-				throw ex;
+				throw;
 			}
 		}
 

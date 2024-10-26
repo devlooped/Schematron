@@ -20,8 +20,9 @@ namespace Schematron.Formatters
 			_removeprefix = new Regex(" .*", RegexOptions.Compiled);
 
 			//Mangle message for xml validation errors to locate the position in the error message.
-			ResourceManager m = new ResourceManager("System.XML", typeof(System.Xml.Schema.XmlSchema).Assembly);
-			string msg = m.GetString("Sch_ErrorPosition");
+			//ResourceManager m = new ResourceManager("System.XML", typeof(System.Xml.Schema.XmlSchema).Assembly);
+			//string msg = m.GetString("Sch_ErrorPosition");
+			string msg = "Line {0}, position {1}.";
 			Regex rp = new Regex(@"{\d+}");
 			msg = rp.Replace(msg, ".*");
 			XmlErrorPosition = new Regex(msg, RegexOptions.Compiled);

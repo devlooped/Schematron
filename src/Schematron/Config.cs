@@ -1,8 +1,6 @@
 using System;
 using System.Xml;
 using System.Xml.XPath;
-using System.Text.RegularExpressions;
-using System.Runtime.Remoting.Messaging;
 using Schematron.Formatters;
 
 namespace Schematron
