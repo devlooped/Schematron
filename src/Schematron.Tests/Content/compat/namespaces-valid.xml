@@ -1,0 +1,3 @@
+<po:order xmlns:po="http://example.com/po" id="o1">
+  <po:item qty="2"/>
+</po:order>

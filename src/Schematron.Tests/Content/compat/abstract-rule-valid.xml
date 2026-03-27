@@ -1,0 +1,4 @@
+<root>
+  <customer id="c1" name="Alice" email="alice@example.com"/>
+  <supplier id="s1" name="Acme"/>
+</root>

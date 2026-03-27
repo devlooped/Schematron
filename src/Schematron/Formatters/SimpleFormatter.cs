@@ -25,6 +25,9 @@ public class SimpleFormatter : LogFormatter
     {
         StringBuilder sb = FormatMessage(source, context, source.Message);
 
+        if (!string.IsNullOrEmpty(source.Severity))
+            sb.Insert(0, "[" + source.Severity + "] ");
+
         if (source is Assert)
             sb.Insert(0, "\tAssert fails: ");
         else

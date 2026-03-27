@@ -1,0 +1,4 @@
+<!-- special item with price=50: violates first rule (>100), but second rule must NOT also fire -->
+<root>
+  <item type="special" price="50"/>
+</root>

@@ -1,0 +1,2 @@
+<!-- missing both id and price: both patterns fire -->
+<catalog><product/></catalog>

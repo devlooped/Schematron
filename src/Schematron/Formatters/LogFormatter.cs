@@ -32,6 +32,8 @@ public class LogFormatter : FormatterBase
         {
             sb.Append("\tReport: ");
         }
+        if (!string.IsNullOrEmpty(source.Severity))
+            sb.Append("[" + source.Severity + "] ");
         sb.Append(res);
 
         //Accumulate namespaces found during traversal of node for its position.

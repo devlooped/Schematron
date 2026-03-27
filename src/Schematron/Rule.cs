@@ -25,8 +25,11 @@ public class Rule : EvaluableExpression
 
     TestCollection _asserts = new TestCollection();
     TestCollection _reports = new TestCollection();
+    LetCollection _lets = new LetCollection();
     string _id = String.Empty;
     bool _abstract = true;
+    IReadOnlyList<string> _flag = Array.Empty<string>();
+    string _visitEach = String.Empty;
 
     /// <summary>
     /// Creates an abstract rule, without context.
@@ -137,6 +140,17 @@ public class Rule : EvaluableExpression
     {
         get { return (_abstract); }
     }
+
+    /// <summary>Gets the variable bindings declared in this rule (<c>&lt;let&gt;</c> elements).</summary>
+    public LetCollection Lets => _lets;
+
+    /// <summary>Gets or sets the flag values declared on this rule (<c>@flag</c> attribute).</summary>
+    public IReadOnlyList<string> Flag { get => _flag; set => _flag = value; }
+
+    /// <summary>Gets or sets the secondary visit path (<c>@visit-each</c> attribute, ISO Schematron 2025).
+    /// For each node matched by <see cref="Context"/>, the <c>@visit-each</c> expression is evaluated
+    /// and each resulting node is tested against the rule's asserts/reports.</summary>
+    public string VisitEach { get => _visitEach; set => _visitEach = value; }
 
     /// <summary />
     public TestCollection Asserts

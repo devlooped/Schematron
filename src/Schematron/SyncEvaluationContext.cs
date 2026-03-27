@@ -69,6 +69,25 @@ class SyncEvaluationContext : EvaluationContextBase
         Source.MoveToRoot();
         var sb = new StringBuilder();
 
+        // 2025: @when condition — if false, skip this phase entirely
+        if (!string.IsNullOrEmpty(phase.When))
+        {
+            try
+            {
+                var whenExpr = Source.Compile(phase.When);
+                whenExpr.SetContext(SchematronXsltContext.ForLoading(Schema.NsManager));
+                object whenResult = Source.Evaluate(whenExpr);
+                bool whenBool = whenResult switch
+                {
+                    bool b => b,
+                    string s => !string.IsNullOrEmpty(s),
+                    _ => true
+                };
+                if (!whenBool) return false;
+            }
+            catch { /* if @when evaluation fails, proceed */ }
+        }
+
         foreach (Pattern pt in phase.Patterns)
         {
             if (Evaluate(pt, sb)) failed = true;
@@ -107,12 +126,14 @@ class SyncEvaluationContext : EvaluationContextBase
         // Reset matched nodes, as across patters, nodes can be 
         // evaluated more than once.
         Matched.Clear();
+        bool isGroup = pattern is Group;
 
         foreach (Rule rule in pattern.Rules)
         {
-            if (Evaluate(rule, sb)) failed = true;
+            // For groups (ISO Schematron 2025), each rule evaluates independently.
+            if (isGroup) Matched.Clear();
+            if (Evaluate(rule, sb, BuildLets(pattern.Lets))) failed = true;
         }
-
         if (failed)
         {
             Formatter.Format(pattern, Source, sb);
@@ -154,7 +175,7 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <exception cref="InvalidOperationException">
     /// The rule to evaluate is abstract (see <see cref="Rule.IsAbstract"/>).
     /// </exception>
-    bool Evaluate(Rule rule, StringBuilder output)
+    bool Evaluate(Rule rule, StringBuilder output, Dictionary<string, string>? patternLets = null)
     {
         if (rule.IsAbstract)
             throw new InvalidOperationException("The Rule is abstract, so it can't be evaluated.");
@@ -178,11 +199,30 @@ class SyncEvaluationContext : EvaluationContextBase
             }
         }
 
+        // 2025: @visit-each — for each matched context node, select secondary nodes to test
+        if (!string.IsNullOrEmpty(rule.VisitEach))
+        {
+            try
+            {
+                var visitExpr = Source.Compile(rule.VisitEach);
+                visitExpr.SetContext(Schema.NsManager);
+                var expanded = new ArrayList();
+                foreach (XPathNavigator contextNode in evaluables)
+                {
+                    XPathNodeIterator visitNodes = contextNode.Select(visitExpr);
+                    while (visitNodes.MoveNext())
+                        expanded.Add(visitNodes.Current.Clone());
+                }
+                evaluables = expanded;
+            }
+            catch { /* fall back to original evaluables on error */ }
+        }
+
         foreach (Assert asr in rule.Asserts)
         {
             foreach (XPathNavigator node in evaluables)
             {
-                if (EvaluateAssert(asr, node.Clone(), sb)) failed = true;
+                if (EvaluateAssert(asr, node.Clone(), sb, patternLets, rule.Lets)) failed = true;
             }
         }
 
@@ -190,7 +230,7 @@ class SyncEvaluationContext : EvaluationContextBase
         {
             foreach (XPathNavigator node in evaluables)
             {
-                if (EvaluateReport(rpt, node.Clone(), sb)) failed = true;
+                if (EvaluateReport(rpt, node.Clone(), sb, patternLets, rule.Lets)) failed = true;
             }
         }
 
@@ -215,9 +255,11 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <param name="context">The context node for the execution.</param>
     /// <param name="output">Contains the builder to accumulate messages in.</param>
     /// <returns>A boolean indicating if a new message was added.</returns>
-    bool EvaluateAssert(Assert assert, XPathNavigator context, StringBuilder output)
+    bool EvaluateAssert(Assert assert, XPathNavigator context, StringBuilder output,
+        Dictionary<string, string>? patternLets = null, LetCollection? ruleLets = null)
     {
-        object eval = context.Evaluate(assert.CompiledExpression);
+        var expr = PrepareExpression(assert.CompiledExpression, context, patternLets, ruleLets, out var xsltCtx);
+        object eval = context.Evaluate(expr);
         bool result = true;
 
         if (assert.ReturnType == XPathResultType.Boolean)
@@ -230,7 +272,12 @@ class SyncEvaluationContext : EvaluationContextBase
             result = false;
         }
 
-        if (!result) Formatter.Format(assert, context, output);
+        if (!result)
+        {
+            SchematronXsltContext.Current = xsltCtx;
+            try { Formatter.Format(assert, context, output); }
+            finally { SchematronXsltContext.Current = null; }
+        }
         return !result;
     }
 
@@ -246,9 +293,11 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <param name="context">The context node for the execution.</param>
     /// <param name="output">Contains the builder to accumulate messages in.</param>
     /// <returns>A boolean indicating if a new message was added.</returns>
-    bool EvaluateReport(Report report, XPathNavigator context, StringBuilder output)
+    bool EvaluateReport(Report report, XPathNavigator context, StringBuilder output,
+        Dictionary<string, string>? patternLets = null, LetCollection? ruleLets = null)
     {
-        object eval = context.Evaluate(report.CompiledExpression);
+        var expr = PrepareExpression(report.CompiledExpression, context, patternLets, ruleLets, out var xsltCtx);
+        object eval = context.Evaluate(expr);
         bool result = false;
 
         if (report.ReturnType == XPathResultType.Boolean)
@@ -261,8 +310,55 @@ class SyncEvaluationContext : EvaluationContextBase
             result = true;
         }
 
-        if (result) Formatter.Format(report, context, output);
+        if (result)
+        {
+            SchematronXsltContext.Current = xsltCtx;
+            try { Formatter.Format(report, context, output); }
+            finally { SchematronXsltContext.Current = null; }
+        }
         return result;
+    }
+
+    // -------------------------------------------------------------------------
+    // Helper: build a merged variable dictionary (schema → pattern → rule scope).
+    // -------------------------------------------------------------------------
+
+    Dictionary<string, string> BuildLets(LetCollection? extraLets = null)
+    {
+        var d = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (Let let in Schema.Lets)
+            if (let.Value is not null) d[let.Name] = let.Value;
+        if (extraLets != null)
+            foreach (Let let in extraLets)
+                if (let.Value is not null) d[let.Name] = let.Value;
+        return d;
+    }
+
+    // Prepares an XPathExpression to be evaluated with variable support.
+    // When no variables are in scope this is a no-op (returns the original expression).
+    XPathExpression PrepareExpression(
+        XPathExpression expr,
+        XPathNavigator context,
+        Dictionary<string, string>? patternLets,
+        LetCollection? ruleLets,
+        out SchematronXsltContext? xsltCtx)
+    {
+        bool hasVars = (Schema.Lets.Count + (patternLets?.Count ?? 0) + (ruleLets?.Count ?? 0)) > 0;
+        if (!hasVars) { xsltCtx = null; return expr; }
+
+        var vars = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (Let let in Schema.Lets)
+            if (let.Value is not null) vars[let.Name] = let.Value;
+        if (patternLets != null)
+            foreach (var kv in patternLets) vars[kv.Key] = kv.Value;
+        if (ruleLets != null)
+            foreach (Let let in ruleLets)
+                if (let.Value is not null) vars[let.Name] = let.Value;
+
+        xsltCtx = new SchematronXsltContext(vars, context, Schema.NsManager);
+        var clone = expr.Clone();
+        clone.SetContext(xsltCtx);
+        return clone;
     }
 }
 

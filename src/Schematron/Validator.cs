@@ -233,7 +233,7 @@ public class Validator
         if (reader.MoveToContent() == XmlNodeType.None) throw new BadSchemaException("No information found to read");
 
         // Determine type of schema received.
-        bool standalone = (reader.NamespaceURI == Schema.Namespace);
+        bool standalone = Schema.IsSchematronNamespace(reader.NamespaceURI);
         bool wxs = (reader.NamespaceURI == XmlSchema.Namespace);
 
         // The whole schema must be read first to preserve the state for later.
@@ -332,7 +332,7 @@ public class Validator
         return true;
     }
 
-    bool IsStandaloneSchematron(string? namespaceUri) => namespaceUri == Schema.Namespace;
+    bool IsStandaloneSchematron(string? namespaceUri) => Schema.IsSchematronNamespace(namespaceUri);
 
     bool IsStandardSchema(string? namespaceUri) => namespaceUri == XmlSchema.Namespace;
 

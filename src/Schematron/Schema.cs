@@ -9,17 +9,29 @@ namespace Schematron;
 /// <progress amount="100">Lacks attributes defined in Schematron, but not in use currently.</progress>
 public class Schema
 {
-    /// <summary>
-    /// The Schematron namespace.
-    /// </summary>
-    public const string Namespace = "http://www.ascc.net/xml/schematron";
+    /// <summary>The ISO/IEC 19757-3 Schematron namespace (official, current standard).</summary>
+    public const string IsoNamespace = "http://purl.oclc.org/dsdl/schematron";
+
+    /// <summary>The legacy ASCC Schematron namespace. Supported for backward compatibility.</summary>
+    public const string LegacyNamespace = "http://www.ascc.net/xml/schematron";
+
+    /// <summary>The default Schematron namespace. Kept for backward compatibility; prefer <see cref="IsoNamespace"/>.</summary>
+    public const string Namespace = LegacyNamespace;
+
+    /// <summary>Returns <see langword="true"/> if <paramref name="uri"/> is a recognized Schematron namespace URI.</summary>
+    public static bool IsSchematronNamespace(string? uri) =>
+        uri == IsoNamespace || uri == LegacyNamespace;
 
     SchemaLoader _loader;
     string _title = String.Empty;
-
+    string _schematronEdition = String.Empty;
     string _defaultphase = String.Empty;
+    bool _isLibrary = false;
     PhaseCollection _phases = new PhaseCollection();
     PatternCollection _patterns = new PatternCollection();
+    LetCollection _lets = new LetCollection();
+    DiagnosticCollection _diagnostics = new DiagnosticCollection();
+    ParamCollection _params = new ParamCollection();
     XmlNamespaceManager _ns = null!;
 
     /// <summary />
@@ -119,6 +131,14 @@ public class Schema
         set { _title = value; }
     }
 
+    /// <summary>Gets or sets the Schematron edition declared by the schema's <c>@schematronEdition</c> attribute.</summary>
+    /// <remarks>A value of <c>"2025"</c> indicates ISO Schematron 4th edition.</remarks>
+    public string SchematronEdition
+    {
+        get { return _schematronEdition; }
+        set { _schematronEdition = value; }
+    }
+
     /// <summary />
     public PhaseCollection Phases
     {
@@ -131,6 +151,22 @@ public class Schema
     {
         get { return _patterns; }
         set { _patterns = value; }
+    }
+
+    /// <summary>Gets the variable bindings declared at the schema level (<c>&lt;let&gt;</c> elements).</summary>
+    public LetCollection Lets => _lets;
+
+    /// <summary>Gets the diagnostic elements declared in the schema (<c>&lt;diagnostics&gt;/&lt;diagnostic&gt;</c>).</summary>
+    public DiagnosticCollection Diagnostics => _diagnostics;
+
+    /// <summary>Gets the parameter declarations at the schema level (<c>&lt;param&gt;</c> elements).</summary>
+    public ParamCollection Params => _params;
+
+    /// <summary>Gets or sets a value indicating whether this schema was loaded from a <c>&lt;library&gt;</c> root element (ISO Schematron 2025).</summary>
+    public bool IsLibrary
+    {
+        get { return _isLibrary; }
+        set { _isLibrary = value; }
     }
 
     /// <summary />

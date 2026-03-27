@@ -1,0 +1,2 @@
+<!-- order has no items: violates the abstract pattern instantiation -->
+<root><order/><invoice><line/></invoice></root>

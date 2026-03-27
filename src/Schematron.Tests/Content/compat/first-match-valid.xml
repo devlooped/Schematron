@@ -1,0 +1,5 @@
+<!-- special item with price=150: passes first rule; ordinary item passes second rule -->
+<root>
+  <item type="special" price="150"/>
+  <item price="5"/>
+</root>

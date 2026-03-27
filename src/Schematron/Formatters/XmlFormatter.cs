@@ -34,6 +34,13 @@ public class XmlFormatter : FormatterBase
         // Start element declaration.
         writer.WriteStartElement("message");
 
+        if (!string.IsNullOrEmpty(source.Severity))
+            writer.WriteAttributeString("severity", source.Severity);
+        if (!string.IsNullOrEmpty(source.Role))
+            writer.WriteAttributeString("role", source.Role);
+        if (source.Flag.Count > 0)
+            writer.WriteAttributeString("flag", string.Join(" ", source.Flag));
+
         msg = FormatMessage(source, context, msg).ToString();
 
         // Finally remove any non-name schematron tag in the message.
@@ -84,12 +91,13 @@ public class XmlFormatter : FormatterBase
     /// </summary>
     public override void Format(Pattern source, XPathNavigator context, StringBuilder output)
     {
-        string res = "<pattern name=\"" + source.Name + "\" ";
+        string elemName = source is Group ? "group" : "pattern";
+        string res = "<" + elemName + " name=\"" + source.Name + "\" ";
         if (source.Id != String.Empty) res += "id=\"" + source.Id + "\" ";
         res += ">";
 
         output.Insert(0, res);
-        output.Append("</pattern>");
+        output.Append("</" + elemName + ">");
     }
 
     /// <summary>
@@ -118,6 +126,7 @@ public class XmlFormatter : FormatterBase
         }
 
         if (source.Title != String.Empty) writer.WriteAttributeString("title", source.Title);
+        if (source.SchematronEdition != String.Empty) writer.WriteAttributeString("schematronEdition", source.SchematronEdition);
 
         writer.WriteRaw(output.ToString());
         writer.WriteEndElement();

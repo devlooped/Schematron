@@ -81,7 +81,21 @@ public abstract class EvaluableExpression
     /// <summary>Sets the manager to use to resolve expression namespaces.</summary>
     public void SetContext(XmlNamespaceManager nsManager)
     {
-        if (_expr != null) _expr.SetContext(nsManager);
+        if (_expr != null)
+        {
+            // When the expression contains variable references ($name), .NET requires an
+            // XsltContext (not just XmlNamespaceManager). Use a load-time stub that satisfies
+            // the requirement; actual variable values are injected at evaluation time.
+            try
+            {
+                _expr.SetContext(nsManager);
+            }
+            catch (System.Xml.XPath.XPathException)
+            {
+                // Expression contains variables – use a load-time XsltContext stub.
+                _expr.SetContext(SchematronXsltContext.ForLoading(nsManager));
+            }
+        }
         _ns = nsManager;
     }
 }

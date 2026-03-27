@@ -1,0 +1,5 @@
+<root>
+  <!-- customer missing email and id -->
+  <customer name="Bob"/>
+  <supplier id="s1" name="Acme"/>
+</root>

@@ -67,6 +67,8 @@ public class Config
         _navigator.NameTable.Add("title");
         _navigator.NameTable.Add("value-of");
         _navigator.NameTable.Add("select");
+        _navigator.NameTable.Add(Schema.IsoNamespace);
+        _navigator.NameTable.Add(Schema.LegacyNamespace);
 
         //Namespace manager initialization
         _nsmanager = new XmlNamespaceManager(_navigator.NameTable);

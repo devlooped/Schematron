@@ -14,6 +14,7 @@ public class Pattern
     string _name = String.Empty;
     string _id = String.Empty;
     RuleCollection _rules = new RuleCollection();
+    LetCollection _lets = new LetCollection();
 
     #region Properties
     /// <summary>Gets or sets the pattern's name.</summary>
@@ -56,6 +57,9 @@ public class Pattern
         _name = name;
         _id = id;
     }
+
+    /// <summary>Gets the variable bindings declared in this pattern (<c>&lt;let&gt;</c> elements).</summary>
+    public LetCollection Lets => _lets;
 
     #region Overridable Factory Methods
     /// <summary>Creates a new rule instance.</summary>

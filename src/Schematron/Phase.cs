@@ -20,6 +20,8 @@ namespace Schematron;
 public class Phase
 {
     string _id = String.Empty;
+    string _from = String.Empty;
+    string _when = String.Empty;
     PatternCollection _patterns = new PatternCollection();
 
     /// <summary>
@@ -42,12 +44,18 @@ public class Phase
     }
 
     #region Properties
-    /// <summary>Gets or sets the phase identifier.</summary>
+    /// <summary />
     public string Id
     {
         get { return _id; }
         set { _id = value; }
     }
+
+    /// <summary>Gets or sets the scope restriction path for this phase (<c>@from</c> attribute, ISO Schematron 2025).</summary>
+    public string From { get => _from; set => _from = value; }
+
+    /// <summary>Gets or sets the enabling condition for this phase (<c>@when</c> attribute, ISO Schematron 2025).</summary>
+    public string When { get => _when; set => _when = value; }
 
     /// <summary>Gets the collection of child <see cref="Pattern"/> elements.</summary>
     public PatternCollection Patterns

@@ -4,7 +4,6 @@ using System.Xml.Schema;
 using System.Xml.XPath;
 
 namespace Schematron.Formatters;
-
 /// <summary>
 /// Look at <see cref="IFormatter"/> documentation.
 /// </summary>
@@ -92,6 +91,10 @@ public abstract class FormatterBase : IFormatter
         XPathExpression? nameExpr;
         XPathExpression? selectExpr;
 
+        // If a SchematronXsltContext is active for this evaluation (e.g. <let> variables are in
+        // scope), prefer it so that $variable references inside <value-of select="..."/> resolve.
+        var ambientCtx = SchematronXsltContext.Current;
+
         // As we move on, we have to append starting from the last point,
         // skipping the <name> and <value-of> expressions: Substring(offset, name.Index - offset).
         int offset = 0;
@@ -108,7 +111,7 @@ public abstract class FormatterBase : IFormatter
             // Does the name element have a path attribute?
             if (nameExpr != null)
             {
-                nameExpr.SetContext(source.GetContext()!);
+                SetExpressionContext(nameExpr, source, ambientCtx);
 
                 string? result = null;
                 if (nameExpr.ReturnType == XPathResultType.NodeSet)
@@ -128,7 +131,7 @@ public abstract class FormatterBase : IFormatter
             // Does the value-of element have a select attribute?
             else if (selectExpr != null)
             {
-                selectExpr.SetContext(source.GetContext()!);
+                SetExpressionContext(selectExpr, source, ambientCtx);
 
                 string? result = null;
                 if (selectExpr.ReturnType == XPathResultType.NodeSet)
@@ -155,5 +158,21 @@ public abstract class FormatterBase : IFormatter
         return sb;
     }
 
-}
+    static void SetExpressionContext(XPathExpression expr, Test source, SchematronXsltContext? ambientCtx)
+    {
+        if (ambientCtx != null)
+        {
+            try { expr.SetContext(ambientCtx); return; }
+            catch (System.Xml.XPath.XPathException) { /* fall through */ }
+        }
 
+        var ns = source.GetContext();
+        if (ns == null) return;
+        try { expr.SetContext(ns); }
+        catch (System.Xml.XPath.XPathException)
+        {
+            expr.SetContext(SchematronXsltContext.ForLoading(ns));
+        }
+    }
+
+}
