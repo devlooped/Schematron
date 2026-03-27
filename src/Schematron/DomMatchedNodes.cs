@@ -1,47 +1,47 @@
-using System;
+using System.Collections.Generic;
 using System.Xml;
 using System.Xml.XPath;
 
-namespace Schematron
+namespace Schematron;
+
+/// <summary>
+/// Strategy class for matching and keeping references to nodes in an xml document.
+/// </summary>
+/// <remarks>
+/// When an <see cref="XPathNavigator"/> is created from an <see cref="XmlDocument"/>,
+/// it implements the <see cref="IHasXmlNode"/> interface, which is used to gain
+/// access to the underlying node.
+/// </remarks>
+/// <author ref="kzu" />
+/// <progress amount="100" />
+class DomMatchedNodes : IMatchedNodes
 {
-	/// <summary>
-	/// Strategy class for matching and keeping references to nodes in an xml document.
-	/// </summary>
-	/// <remarks>
-	/// When an <see cref="XPathNavigator"/> is created from an <see cref="XmlDocument"/>,
-	/// it implements the <see cref="IHasXmlNode"/> interface, which is used to gain
-	/// access to the underlying node.
-	/// </remarks>
-	/// <author ref="kzu" />
-	/// <progress amount="100" />
-	class DomMatchedNodes : IMatchedNodes
-	{
-		/// <summary>
-		/// We use an optimized collection for saving the hash codes.
-		/// </summary>
-		Int32Collection _matched = new Int32Collection();
+    /// <summary>
+    /// We use a collection for saving the hash codes.
+    /// </summary>
+    List<int> _matched = new List<int>();
 
-		/// <summary>Initializes an instance of the class.</summary>
-		public DomMatchedNodes()
-		{
-		}
+    /// <summary>Initializes an instance of the class.</summary>
+    public DomMatchedNodes()
+    {
+    }
 
-		/// <summary>See <see cref="IMatchedNodes.IsMatched"/>.</summary>
-		public bool IsMatched(XPathNavigator node)
-		{
-			return _matched.Contains(((IHasXmlNode)node).GetNode().GetHashCode());
-		}
+    /// <summary>See <see cref="IMatchedNodes.IsMatched"/>.</summary>
+    public bool IsMatched(XPathNavigator node)
+    {
+        return _matched.Contains(((IHasXmlNode)node).GetNode().GetHashCode());
+    }
 
-		/// <summary>See <see cref="IMatchedNodes.AddMatched"/>.</summary>
-		public void AddMatched(XPathNavigator node)
-		{
-			_matched.Add(((IHasXmlNode)node).GetNode().GetHashCode());
-		}
+    /// <summary>See <see cref="IMatchedNodes.AddMatched"/>.</summary>
+    public void AddMatched(XPathNavigator node)
+    {
+        _matched.Add(((IHasXmlNode)node).GetNode().GetHashCode());
+    }
 
-		/// <summary>See <see cref="IMatchedNodes.Clear"/>.</summary>
-		public void Clear()
-		{
-			_matched.Clear();
-		}
-	}
+    /// <summary>See <see cref="IMatchedNodes.Clear"/>.</summary>
+    public void Clear()
+    {
+        _matched.Clear();
+    }
 }
+

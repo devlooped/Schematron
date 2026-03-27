@@ -1,0 +1,10 @@
+<Project>
+
+  <PropertyGroup>
+    <Product>Schematron.NET</Product>
+    <Description>A C# high-performance implementation of Schematron ISO/IEC standard</Description>
+    <PackageProjectUrl>https://github.com/kzu/Schematron</PackageProjectUrl>
+    <ImplicitUsings>true</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
