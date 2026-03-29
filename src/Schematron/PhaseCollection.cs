@@ -3,8 +3,6 @@ using System.Collections;
 namespace Schematron;
 
 /// <summary>A collection of Phase elements</summary>
-/// <author ref="kzu" />
-/// <progress amount="100" />
 public class PhaseCollection : DictionaryBase
 {
 
@@ -29,7 +27,7 @@ public class PhaseCollection : DictionaryBase
     /// <summary></summary>
     public void AddRange(Phase[] values)
     {
-        foreach (Phase elem in values)
+        foreach (var elem in values)
             Add(elem);
     }
 

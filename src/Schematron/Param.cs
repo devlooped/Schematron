@@ -12,8 +12,8 @@ namespace Schematron;
 public class Param
 {
     /// <summary>Gets or sets the parameter name (matches the <c>$name</c> placeholder in the abstract pattern).</summary>
-    public string Name { get; set; } = String.Empty;
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the substitution value.</summary>
-    public string Value { get; set; } = String.Empty;
+    public string Value { get; set; } = string.Empty;
 }

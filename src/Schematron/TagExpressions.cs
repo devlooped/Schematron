@@ -32,7 +32,7 @@ class TagExpressions
         Any = new Regex(@"<[^\s]*[^>]*>", RegexOptions.Compiled);
         // Closing elements don't have an expanded xmlns so they will be matched too.
         // TODO: improve this to avoid removing non-schematron closing elements.
-        string nsPattern = "(?:" + Regex.Escape(Schema.LegacyNamespace) + "|" + Regex.Escape(Schema.IsoNamespace) + ")";
+        var nsPattern = "(?:" + Regex.Escape(Schema.LegacyNamespace) + "|" + Regex.Escape(Schema.IsoNamespace) + ")";
         AllSchematron = new Regex(@"<.*\bxmlns\b[^\s]*" + nsPattern + "[^>]*>|</[^>]*>", RegexOptions.Compiled);
     }
 

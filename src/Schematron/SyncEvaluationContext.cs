@@ -15,11 +15,6 @@ namespace Schematron;
 /// </remarks>
 class SyncEvaluationContext : EvaluationContextBase
 {
-    /// <summary>Creates the evaluation context</summary>
-    public SyncEvaluationContext()
-    {
-    }
-
     /// <summary>
     /// Starts the evaluation process.
     /// </summary>
@@ -29,21 +24,18 @@ class SyncEvaluationContext : EvaluationContextBase
     /// </remarks>
     public override void Start()
     {
-        this.Reset();
+        Reset();
 
         // Is there something to evaluate at all?
-        if (Schema.Patterns.Count == 0) return;
+        if (Schema is null || Schema.Patterns.Count == 0)
+            return;
 
         // If no phase was received, try the default phase defined for the schema.
         // If no default phase is defined, all patterns will be tested.
         if (Phase == string.Empty)
-        {
-            Phase = !string.IsNullOrEmpty(Schema.DefaultPhase)
-                ? Schema.DefaultPhase
-                : Schematron.Phase.All;
-        }
+            Phase = Schema.DefaultPhase is { Length: > 0 } phase ? phase : Schematron.Phase.All;
 
-        if (Schema.Phases[Phase] == null)
+        if (Phase != Schematron.Phase.All && Schema.Phases[Phase] == null)
             throw new ArgumentException("The specified Phase isn't defined for the current schema.");
 
         if (Evaluate(Schema.Phases[Phase], Messages))
@@ -65,7 +57,7 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <returns>A boolean indicating the presence of errors (true).</returns>
     bool Evaluate(Phase phase, StringBuilder output)
     {
-        bool failed = false;
+        var failed = false;
         Source.MoveToRoot();
         var sb = new StringBuilder();
 
@@ -76,8 +68,8 @@ class SyncEvaluationContext : EvaluationContextBase
             {
                 var whenExpr = Source.Compile(phase.When);
                 whenExpr.SetContext(SchematronXsltContext.ForLoading(Schema.NsManager));
-                object whenResult = Source.Evaluate(whenExpr);
-                bool whenBool = whenResult switch
+                var whenResult = Source.Evaluate(whenExpr);
+                var whenBool = whenResult switch
                 {
                     bool b => b,
                     string s => !string.IsNullOrEmpty(s),
@@ -88,7 +80,7 @@ class SyncEvaluationContext : EvaluationContextBase
             catch { /* if @when evaluation fails, proceed */ }
         }
 
-        foreach (Pattern pt in phase.Patterns)
+        foreach (var pt in phase.Patterns)
         {
             if (Evaluate(pt, sb)) failed = true;
         }
@@ -119,16 +111,16 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <returns>A boolean indicating if a new message was added.</returns>
     bool Evaluate(Pattern pattern, StringBuilder output)
     {
-        bool failed = false;
+        var failed = false;
         Source.MoveToRoot();
         var sb = new StringBuilder();
 
         // Reset matched nodes, as across patters, nodes can be 
         // evaluated more than once.
         Matched.Clear();
-        bool isGroup = pattern is Group;
+        var isGroup = pattern is Group;
 
-        foreach (Rule rule in pattern.Rules)
+        foreach (var rule in pattern.Rules)
         {
             // For groups (ISO Schematron 2025), each rule evaluates independently.
             if (isGroup) Matched.Clear();
@@ -171,6 +163,7 @@ class SyncEvaluationContext : EvaluationContextBase
     /// </remarks>
     /// <param name="rule">The <see cref="Rule"/> to evaluate.</param>
     /// <param name="output">Contains the builder to accumulate messages in.</param>
+    /// <param name="patternLets">A dictionary of pattern-level variable bindings (Let expressions) that will be merged with schema-level and rule-level variables during expression evaluation. Can be null if no pattern-level variables are defined.</param>
     /// <returns>A boolean indicating if a new message was added.</returns>
     /// <exception cref="InvalidOperationException">
     /// The rule to evaluate is abstract (see <see cref="Rule.IsAbstract"/>).
@@ -180,10 +173,10 @@ class SyncEvaluationContext : EvaluationContextBase
         if (rule.IsAbstract)
             throw new InvalidOperationException("The Rule is abstract, so it can't be evaluated.");
 
-        bool failed = false;
+        var failed = false;
         var sb = new StringBuilder();
         Source.MoveToRoot();
-        XPathNodeIterator nodes = Source.Select(rule.CompiledExpression);
+        var nodes = Source.Select(rule.CompiledExpression);
         var evaluables = new ArrayList(nodes.Count);
 
         // The navigator doesn't contain line info
@@ -193,7 +186,7 @@ class SyncEvaluationContext : EvaluationContextBase
             {
                 // Add the navigator to the list to be evaluated and to 
                 // the list of pattern-level nodes matched so far.
-                XPathNavigator curr = nodes.Current.Clone();
+                var curr = nodes.Current.Clone();
                 evaluables.Add(curr);
                 Matched.AddMatched(curr);
             }
@@ -209,7 +202,7 @@ class SyncEvaluationContext : EvaluationContextBase
                 var expanded = new ArrayList();
                 foreach (XPathNavigator contextNode in evaluables)
                 {
-                    XPathNodeIterator visitNodes = contextNode.Select(visitExpr);
+                    var visitNodes = contextNode.Select(visitExpr);
                     while (visitNodes.MoveNext())
                         expanded.Add(visitNodes.Current.Clone());
                 }
@@ -254,13 +247,15 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <param name="assert">The <see cref="Assert"/> to evaluate.</param>
     /// <param name="context">The context node for the execution.</param>
     /// <param name="output">Contains the builder to accumulate messages in.</param>
+    /// <param name="patternLets">A dictionary of pattern-level variable bindings (Let expressions) that will be merged with schema-level and rule-level variables during expression evaluation. Can be null if no pattern-level variables are defined.</param>
+    /// <param name="ruleLets">A collection of rule-level variable bindings (Let expressions) that will be merged with schema-level and pattern-level variables during expression evaluation. Can be null if no rule-level variables are defined.</param>
     /// <returns>A boolean indicating if a new message was added.</returns>
     bool EvaluateAssert(Assert assert, XPathNavigator context, StringBuilder output,
         Dictionary<string, string>? patternLets = null, LetCollection? ruleLets = null)
     {
         var expr = PrepareExpression(assert.CompiledExpression, context, patternLets, ruleLets, out var xsltCtx);
-        object eval = context.Evaluate(expr);
-        bool result = true;
+        var eval = context.Evaluate(expr);
+        var result = true;
 
         if (assert.ReturnType == XPathResultType.Boolean)
         {
@@ -292,13 +287,15 @@ class SyncEvaluationContext : EvaluationContextBase
     /// <param name="report">The <see cref="Report"/> to evaluate.</param>
     /// <param name="context">The context node for the execution.</param>
     /// <param name="output">Contains the builder to accumulate messages in.</param>
+    /// <param name="patternLets">A dictionary of pattern-level variable bindings (Let expressions) that will be merged with schema-level and rule-level variables during expression evaluation. Can be null if no pattern-level variables are defined.</param>
+    /// <param name="ruleLets">A collection of rule-level variable bindings (Let expressions) that will be merged with schema-level and pattern-level variables during expression evaluation. Can be null if no rule-level variables are defined.</param>
     /// <returns>A boolean indicating if a new message was added.</returns>
     bool EvaluateReport(Report report, XPathNavigator context, StringBuilder output,
         Dictionary<string, string>? patternLets = null, LetCollection? ruleLets = null)
     {
         var expr = PrepareExpression(report.CompiledExpression, context, patternLets, ruleLets, out var xsltCtx);
-        object eval = context.Evaluate(expr);
-        bool result = false;
+        var eval = context.Evaluate(expr);
+        var result = false;
 
         if (report.ReturnType == XPathResultType.Boolean)
         {
@@ -326,10 +323,10 @@ class SyncEvaluationContext : EvaluationContextBase
     Dictionary<string, string> BuildLets(LetCollection? extraLets = null)
     {
         var d = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (Let let in Schema.Lets)
+        foreach (var let in Schema.Lets)
             if (let.Value is not null) d[let.Name] = let.Value;
         if (extraLets != null)
-            foreach (Let let in extraLets)
+            foreach (var let in extraLets)
                 if (let.Value is not null) d[let.Name] = let.Value;
         return d;
     }
@@ -343,16 +340,16 @@ class SyncEvaluationContext : EvaluationContextBase
         LetCollection? ruleLets,
         out SchematronXsltContext? xsltCtx)
     {
-        bool hasVars = (Schema.Lets.Count + (patternLets?.Count ?? 0) + (ruleLets?.Count ?? 0)) > 0;
+        var hasVars = (Schema.Lets.Count + (patternLets?.Count ?? 0) + (ruleLets?.Count ?? 0)) > 0;
         if (!hasVars) { xsltCtx = null; return expr; }
 
         var vars = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (Let let in Schema.Lets)
+        foreach (var let in Schema.Lets)
             if (let.Value is not null) vars[let.Name] = let.Value;
         if (patternLets != null)
             foreach (var kv in patternLets) vars[kv.Key] = kv.Value;
         if (ruleLets != null)
-            foreach (Let let in ruleLets)
+            foreach (var let in ruleLets)
                 if (let.Value is not null) vars[let.Name] = let.Value;
 
         xsltCtx = new SchematronXsltContext(vars, context, Schema.NsManager);

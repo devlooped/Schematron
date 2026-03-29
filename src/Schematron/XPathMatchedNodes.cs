@@ -16,14 +16,14 @@ namespace Schematron;
 class XPathMatchedNodes : IMatchedNodes
 {
     // The dictionary maps each line number to a list of column positions.
-    Dictionary<int, List<int>> _matched = new Dictionary<int, List<int>>();
+    readonly Dictionary<int, List<int>> matched = [];
 
     /// <summary>See <see cref="IMatchedNodes.IsMatched"/>.</summary>
     public bool IsMatched(XPathNavigator node)
     {
         var info = (IXmlLineInfo)node;
 
-        if (!_matched.TryGetValue(info.LineNumber, out List<int> pos))
+        if (!matched.TryGetValue(info.LineNumber, out var pos))
             return false;
 
         return pos.Contains(info.LinePosition);
@@ -34,16 +34,16 @@ class XPathMatchedNodes : IMatchedNodes
     {
         var info = (IXmlLineInfo)node;
 
-        if (!_matched.TryGetValue(info.LineNumber, out var pos))
+        if (!matched.TryGetValue(info.LineNumber, out var pos))
         {
             pos = [];
-            _matched.Add(info.LineNumber, pos);
+            matched.Add(info.LineNumber, pos);
         }
 
         pos.Add(info.LinePosition);
     }
 
     /// <summary>See <see cref="IMatchedNodes.Clear"/>.</summary>
-    public void Clear() => _matched.Clear();
+    public void Clear() => matched.Clear();
 }
 

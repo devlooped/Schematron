@@ -10,8 +10,8 @@ namespace Schematron;
 /// </summary>
 sealed class SchematronXsltContext : XsltContext
 {
-    readonly Dictionary<string, string> _variables;
-    readonly XPathNavigator? _contextNode;
+    readonly Dictionary<string, string> variables;
+    readonly XPathNavigator? contextNode;
 
     /// <summary>
     /// Thread-local ambient context for the current Schematron evaluation. Used by
@@ -23,11 +23,11 @@ sealed class SchematronXsltContext : XsltContext
 
     /// <summary>
     /// Creates a load-time (stub) context for schema loading. Variables return empty strings.
-    /// Useful for passing to <see cref="System.Xml.XPath.XPathExpression.SetContext"/> when the
+    /// Useful for passing to <see cref="XPathExpression.SetContext(IXmlNamespaceResolver)"/> when the
     /// expression contains variable references but actual values are not yet available.
     /// </summary>
     public static SchematronXsltContext ForLoading(XmlNamespaceManager nsManager)
-        => new SchematronXsltContext(new Dictionary<string, string>(), null, nsManager);
+        => new([], null, nsManager);
 
     /// <summary>
     /// Initialises a new instance from accumulated <c>&lt;let&gt;</c> declarations,
@@ -39,8 +39,8 @@ sealed class SchematronXsltContext : XsltContext
         XmlNamespaceManager nsManager)
         : base(new System.Xml.NameTable())
     {
-        _variables = variables;
-        _contextNode = contextNode;
+        this.variables = variables;
+        this.contextNode = contextNode;
 
         // Copy prefix→namespace mappings so the context can resolve namespace prefixes used
         // in variable-value XPath expressions.
@@ -49,7 +49,7 @@ sealed class SchematronXsltContext : XsltContext
             if (string.IsNullOrEmpty(prefix)) continue;
             // "xml" and "xmlns" are reserved and cannot be re-added.
             if (prefix == "xml" || prefix == "xmlns") continue;
-            string ns = nsManager.LookupNamespace(prefix) ?? String.Empty;
+            var ns = nsManager.LookupNamespace(prefix) ?? string.Empty;
             if (ns.Length > 0)
             {
                 try { AddNamespace(prefix, ns); }
@@ -74,12 +74,12 @@ sealed class SchematronXsltContext : XsltContext
     /// <inheritdoc />
     public override IXsltContextVariable ResolveVariable(string prefix, string name)
     {
-        if (_variables.TryGetValue(name, out string? expr))
-            return new LetVariable(name, expr, _contextNode);
+        if (variables.TryGetValue(name, out var expr))
+            return new LetVariable(name, expr, contextNode);
 
         // Return an empty-string variable for undefined references rather than throwing,
         // so that schemas with forward-declared variables do not crash during evaluation.
-        return new LetVariable(name, "", _contextNode);
+        return new LetVariable(name, "", contextNode);
     }
 
     // -------------------------------------------------------------------------
@@ -88,44 +88,30 @@ sealed class SchematronXsltContext : XsltContext
     /// Returns the raw string value for a variable by name, or <see langword="null"/> if not found.
     /// </summary>
     public string? GetVariableValue(string name)
-    {
-        if (_variables.TryGetValue(name, out var val)) return val;
-        return null;
-    }
+        => variables.TryGetValue(name, out var val) ? val : null;
 
     // -------------------------------------------------------------------------
 
-    sealed class LetVariable : IXsltContextVariable
+    sealed class LetVariable(string name, string expr, XPathNavigator? context) : IXsltContextVariable
     {
-        readonly string _name;
-        readonly string _expr;
-        readonly XPathNavigator? _context;
-
-        public LetVariable(string name, string expr, XPathNavigator? context)
-        {
-            _name = name;
-            _expr = expr;
-            _context = context;
-        }
-
         public bool IsLocal => true;
         public bool IsParam => false;
         public XPathResultType VariableType => XPathResultType.Any;
 
         public object Evaluate(XsltContext xsltContext)
         {
-            if (string.IsNullOrEmpty(_expr) || _context is null)
-                return String.Empty;
+            if (string.IsNullOrEmpty(expr) || context is null)
+                return string.Empty;
 
             try
             {
-                XPathExpression compiled = _context.Compile(_expr);
+                var compiled = context.Compile(expr);
                 compiled.SetContext(xsltContext);
-                return _context.Evaluate(compiled);
+                return context.Evaluate(compiled);
             }
             catch
             {
-                return String.Empty;
+                return string.Empty;
             }
         }
     }

@@ -1,4 +1,3 @@
-using System.IO;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.Serialization;
@@ -78,7 +77,7 @@ public class ValidatorTests
                 using (var stream = new MemoryStream(System.Text.Encoding.Unicode.GetBytes(ex.Message)))
                 using (var reader = XmlReader.Create(stream))
                 {
-                    var obj = (Schematron.Serialization.SchematronValidationResultTempObjectModel.Output)serializer.Deserialize(reader);
+                    var obj = (Schematron.Serialization.SchematronValidationResultTempObjectModel.Output?)serializer.Deserialize(reader);
 
                     // Assert
 
@@ -282,7 +281,7 @@ public class ValidatorTests
 
         using (var doc = XmlReader.Create(XmlContentLocation))
         {
-            var result = (IXPathNavigable)null;
+            IXPathNavigable? result = default;
 
             try
             {
@@ -292,7 +291,7 @@ public class ValidatorTests
             {
                 System.Diagnostics.Debug.WriteLine(ex.Message);
                 string expectedMessage = "<text>Attributes sex (Female) and title (Mr) must have compatible values on element customer.</text>";
-                Xunit.Assert.True(ex.Message.Contains(expectedMessage));
+                Xunit.Assert.Contains(expectedMessage, ex.Message);
             }
             Xunit.Assert.Null(result);
         }

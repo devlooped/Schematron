@@ -22,34 +22,24 @@ namespace Schematron;
 public class Rule : EvaluableExpression
 {
     // TODO: add support to <key></key> child elements?
-
-    TestCollection _asserts = new TestCollection();
-    TestCollection _reports = new TestCollection();
-    LetCollection _lets = new LetCollection();
-    string _id = String.Empty;
-    bool _abstract = true;
-    IReadOnlyList<string> _flag = Array.Empty<string>();
-    string _visitEach = String.Empty;
+    readonly TestCollection asserts = [];
+    readonly TestCollection reports = [];
+    readonly LetCollection lets = [];
 
     /// <summary>
     /// Creates an abstract rule, without context.
     /// </summary>
-    internal protected Rule()
-    {
-    }
+    internal protected Rule() { }
 
     /// <summary>Initializes a new instance of the class, with the received context.</summary>
     /// <param name="context">The rule's context to evaluate.</param>
-    /// <remarks>If passed a null or an <see cref="String.Empty"/>, this is implicitly an abstract rule.</remarks>
-    internal protected Rule(string context)
-    {
-        InitContext(context);
-    }
+    /// <remarks>If passed a null or an <see cref="string.Empty"/>, this is implicitly an abstract rule.</remarks>
+    internal protected Rule(string context) => InitContext(context);
 
     /// <summary>Initializes the context for the rule.</summary>
     /// <param name="context">The rule's context to evaluate.</param>
     /// <remarks>
-    /// If passed a null or an <see cref="String.Empty"/>, this is implicitly an abstract rule.
+    /// If passed a null or an <see cref="string.Empty"/>, this is implicitly an abstract rule.
     /// </remarks>
     /// <author ref="dcazzulino">
     /// Rules are evaluated through all the document (//), unless they
@@ -61,7 +51,7 @@ public class Rule : EvaluableExpression
     {
         if (string.IsNullOrEmpty(context))
         {
-            _abstract = true;
+            IsAbstract = true;
             return;
         }
 
@@ -71,7 +61,7 @@ public class Rule : EvaluableExpression
         // We have to split per union (|) to add the root expression.
         var parts = context.Split('|');
 
-        for (int i = 0; i < parts.Length; i++)
+        for (var i = 0; i < parts.Length; i++)
         {
             parts[i] = parts[i].Trim();
 
@@ -80,10 +70,9 @@ public class Rule : EvaluableExpression
         }
 
         InitializeExpression(string.Join(" | ", parts));
-        _abstract = false;
+        IsAbstract = false;
     }
 
-    #region Overridable Factory Methods
     /// <summary>Creates a new assert instance.</summary>
     /// <remarks>
     /// Inheritors should override this method to create instances
@@ -97,10 +86,7 @@ public class Rule : EvaluableExpression
     /// The message to display if the assert fails. See
     /// <see cref="Test.Message"/>.
     /// </param>
-    public virtual Assert CreateAssert(string test, string message)
-    {
-        return new Assert(test, message);
-    }
+    public virtual Assert CreateAssert(string test, string message) => new Assert(test, message);
 
     /// <summary>Creates a new report instance.</summary>
     /// <remarks>
@@ -115,66 +101,39 @@ public class Rule : EvaluableExpression
     /// The message to display if the report succeeds. See
     /// <see cref="Test.Message"/>.
     /// </param>
-    public virtual Report CreateReport(string test, string message)
-    {
-        return new Report(test, message);
-    }
-    #endregion
+    public virtual Report CreateReport(string test, string message) => new Report(test, message);
 
     /// <summary />
-    public string Id
-    {
-        get { return _id; }
-        set { _id = value; }
-    }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary />
-    public string Context
-    {
-        get { return base.Expression; }
-        set { InitContext(value); }
-    }
+    public string Context => base.Expression;
 
     /// <summary />
-    public bool IsAbstract
-    {
-        get { return (_abstract); }
-    }
+    public bool IsAbstract { get; private set; } = true;
 
     /// <summary>Gets the variable bindings declared in this rule (<c>&lt;let&gt;</c> elements).</summary>
-    public LetCollection Lets => _lets;
+    public LetCollection Lets => lets;
 
     /// <summary>Gets or sets the flag values declared on this rule (<c>@flag</c> attribute).</summary>
-    public IReadOnlyList<string> Flag { get => _flag; set => _flag = value; }
+    public IReadOnlyList<string> Flag { get; set; } = [];
 
     /// <summary>Gets or sets the secondary visit path (<c>@visit-each</c> attribute, ISO Schematron 2025).
     /// For each node matched by <see cref="Context"/>, the <c>@visit-each</c> expression is evaluated
     /// and each resulting node is tested against the rule's asserts/reports.</summary>
-    public string VisitEach { get => _visitEach; set => _visitEach = value; }
+    public string VisitEach { get; set; } = string.Empty;
 
     /// <summary />
-    public TestCollection Asserts
-    {
-        get { return _asserts; }
-    }
+    public TestCollection Asserts => asserts;
 
     /// <summary />
-    public TestCollection Reports
-    {
-        get { return _reports; }
-    }
+    public TestCollection Reports => reports;
 
     /// <summary />
-    public void AddAssert(string test, string message)
-    {
-        _asserts.Add(CreateAssert(test, message));
-    }
+    public void AddAssert(string test, string message) => asserts.Add(CreateAssert(test, message));
 
     /// <summary />
-    public void AddReport(string test, string message)
-    {
-        _reports.Add(CreateReport(test, message));
-    }
+    public void AddReport(string test, string message) => reports.Add(CreateReport(test, message));
 
     /// <summary />
     /// <param name="parent"></param>
@@ -184,11 +143,11 @@ public class Rule : EvaluableExpression
         if (!parent.IsAbstract)
             throw new ArgumentException("The rule to extend must be abstract.", "parent");
 
-        foreach (Assert asr in parent._asserts)
-            _asserts.Add(asr);
+        foreach (Assert asr in parent.asserts)
+            asserts.Add(asr);
 
-        foreach (Report rpt in parent._reports)
-            _reports.Add(rpt);
+        foreach (Report rpt in parent.reports)
+            reports.Add(rpt);
     }
 }
 

@@ -13,17 +13,12 @@ namespace Schematron.Formatters;
 /// </remarks>
 public class SimpleFormatter : LogFormatter
 {
-    /// <summary />
-    public SimpleFormatter()
-    {
-    }
-
     /// <summary>
     /// Look at <see cref="IFormatter.Format(Test, XPathNavigator, StringBuilder)"/> documentation.
     /// </summary>
     public override void Format(Test source, XPathNavigator context, StringBuilder output)
     {
-        StringBuilder sb = FormatMessage(source, context, source.Message);
+        var sb = FormatMessage(source, context, source.Message);
 
         if (!string.IsNullOrEmpty(source.Severity))
             sb.Insert(0, "[" + source.Severity + "] ");
@@ -34,7 +29,7 @@ public class SimpleFormatter : LogFormatter
             sb.Insert(0, "\tReport: ");
 
         var ns = new Hashtable();
-        sb.Append("\r\n\tAt: " + FormattingUtils.GetFullNodePosition(context.Clone(), String.Empty, source, ns));
+        sb.Append("\r\n\tAt: " + FormattingUtils.GetFullNodePosition(context.Clone(), string.Empty, source, ns));
         sb.Append("\r\n");
 
         output.Append(sb.ToString());

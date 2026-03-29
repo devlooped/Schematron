@@ -9,11 +9,6 @@ namespace Schematron.Formatters;
 /// </summary>
 public abstract class FormatterBase : IFormatter
 {
-    /// <summary />
-    public FormatterBase()
-    {
-    }
-
     /// <summary>
     /// Look at <see cref="IFormatter.Format(Test, XPathNavigator, StringBuilder)"/> documentation.
     /// </summary>
@@ -97,16 +92,16 @@ public abstract class FormatterBase : IFormatter
 
         // As we move on, we have to append starting from the last point,
         // skipping the <name> and <value-of> expressions: Substring(offset, name.Index - offset).
-        int offset = 0;
+        var offset = 0;
 
-        for (int i = 0; i < source.NameValueOfExpressions.Count; i++)
+        for (var i = 0; i < source.NameValueOfExpressions.Count; i++)
         {
-            System.Text.RegularExpressions.Match name = source.NameValueOfExpressions[i];
+            var name = source.NameValueOfExpressions[i];
             nameExpr = source.NamePaths[i];
             selectExpr = source.ValueOfSelects[i];
 
             // Append the text without the expression.
-            sb.Append(msg.Substring(offset, name.Index - offset));
+            sb.Append(msg[offset..name.Index]);
 
             // Does the name element have a path attribute?
             if (nameExpr != null)
@@ -123,7 +118,9 @@ public abstract class FormatterBase : IFormatter
                         result = nodes.Current.Name;
                 }
                 else
+                {
                     result = context.Evaluate(nameExpr) as string;
+                }
 
                 if (result != null)
                     sb.Append(result);
@@ -133,16 +130,18 @@ public abstract class FormatterBase : IFormatter
             {
                 SetExpressionContext(selectExpr, source, ambientCtx);
 
-                string? result = null;
+                string? result;
                 if (selectExpr.ReturnType == XPathResultType.NodeSet)
                 {
                     var nodes = (XPathNodeIterator)context.Evaluate(selectExpr);
-                    result = String.Empty;
+                    result = string.Empty;
                     while (nodes.MoveNext())
                         result += nodes.Current.Value;
                 }
                 else
+                {
                     result = context.Evaluate(selectExpr) as string;
+                }
 
                 if (result != null)
                     sb.Append(result);
@@ -154,7 +153,7 @@ public abstract class FormatterBase : IFormatter
             offset = name.Index + name.Length;
         }
 
-        sb.Append(msg.Substring(offset));
+        sb.Append(msg[offset..]);
         return sb;
     }
 
