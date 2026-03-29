@@ -41,7 +41,7 @@ public class XmlFormatter : FormatterBase
         msg = FormatMessage(source, context, msg).ToString();
 
         // Finally remove any non-name schematron tag in the message.
-        var res = TagExpressions.AllSchematron.Replace(msg, string.Empty);
+        var res = TagExpressions.AllSchematron().Replace(msg, string.Empty);
 
         //Accumulate namespaces found during traversal of node for its position.
         var ns = new Hashtable();

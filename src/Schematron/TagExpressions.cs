@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Schematron;
 
 /// <summary />
-class TagExpressions
+partial class TagExpressions
 {
     /// <summary>
     /// The compiled regular expression to replace the special <c>name</c> and <c>value</c> tags inside a message.
@@ -11,33 +11,29 @@ class TagExpressions
     /// <remarks>
     /// Replaces each instance of <c>name</c> and <c>value</c>tags with the value in the current context element.
     /// </remarks>
-    public static Regex NameValueOf;
+    // The element declarations can contain the namespace if expanded in a loaded document.
+    [GeneratedRegex(@"<[^\s>]*\b(name|value-of)\b[^>]*/>")]
+    public static partial Regex NameValueOf();
 
-    public static Regex Emph;
-    public static Regex Dir;
-    public static Regex Span;
-    public static Regex Para;
-    public static Regex Any;
-    public static Regex AllSchematron;
+    [GeneratedRegex(@"<[^\s>]*\bemph\b[^>]*>")]
+    public static partial Regex Emph();
 
-    /// <summary />
-    static TagExpressions()
-    {
-        // The element declarations can contain the namespace if expanded in a loaded document.
-        NameValueOf = new Regex(@"<[^\s>]*\b(name|value-of)\b[^>]*/>", RegexOptions.Compiled);
-        Emph = new Regex(@"<[^\s>]*\bemph\b[^>]*>", RegexOptions.Compiled);
-        Dir = new Regex(@"<[^\s]*\bdir\b[^>]*>", RegexOptions.Compiled);
-        Span = new Regex(@"<[^\s]*\bspan\b[^>]*>", RegexOptions.Compiled);
-        Para = new Regex(@"<[^\s]*\bp\b[^>]*>", RegexOptions.Compiled);
-        Any = new Regex(@"<[^\s]*[^>]*>", RegexOptions.Compiled);
-        // Closing elements don't have an expanded xmlns so they will be matched too.
-        // TODO: improve this to avoid removing non-schematron closing elements.
-        var nsPattern = "(?:" + Regex.Escape(Schema.LegacyNamespace) + "|" + Regex.Escape(Schema.IsoNamespace) + ")";
-        AllSchematron = new Regex(@"<.*\bxmlns\b[^\s]*" + nsPattern + "[^>]*>|</[^>]*>", RegexOptions.Compiled);
-    }
+    [GeneratedRegex(@"<[^\s]*\bdir\b[^>]*>")]
+    public static partial Regex Dir();
 
-    TagExpressions()
-    {
-    }
+    [GeneratedRegex(@"<[^\s]*\bspan\b[^>]*>")]
+    public static partial Regex Span();
+
+    [GeneratedRegex(@"<[^\s]*\bp\b[^>]*>")]
+    public static partial Regex Para();
+
+    [GeneratedRegex(@"<[^\s]*[^>]*>")]
+    public static partial Regex Any();
+
+    // Closing elements don't have an expanded xmlns so they will be matched too.
+    // TODO: improve this to avoid removing non-schematron closing elements.
+    // Pattern derived from Schema.LegacyNamespace and Schema.IsoNamespace (with Regex.Escape applied).
+    [GeneratedRegex(@"<.*\bxmlns\b[^\s]*(?:http://www\.ascc\.net/xml/schematron|http://purl\.oclc\.org/dsdl/schematron)[^>]*>|</[^>]*>")]
+    public static partial Regex AllSchematron();
 }
 

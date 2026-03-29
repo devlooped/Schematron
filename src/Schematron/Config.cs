@@ -143,7 +143,7 @@ public class Config
     {
         System.Diagnostics.Trace.Write("Loading schematron statics...");
         System.Diagnostics.Trace.Write(CompiledExpressions.Schema.ReturnType);
-        System.Diagnostics.Trace.Write(TagExpressions.Dir.RightToLeft);
+        System.Diagnostics.Trace.Write(TagExpressions.Dir().RightToLeft);
         System.Diagnostics.Trace.WriteLine(FormattingUtils.XmlErrorPosition.RightToLeft);
     }
 }

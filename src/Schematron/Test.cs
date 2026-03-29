@@ -22,7 +22,7 @@ public abstract class Test : EvaluableExpression
         // Save <name> and <value-of> tags in the message and their paths / selects in their compiled form.
         // TODO: see if we can work with the XML in the message, instead of using RE.
         // TODO: Check the correct usage of path and select attributes.
-        NameValueOfExpressions = TagExpressions.NameValueOf.Matches(Message);
+        NameValueOfExpressions = TagExpressions.NameValueOf().Matches(Message);
         var nc = NameValueOfExpressions.Count;
         NamePaths = new XPathExpression[nc];
         ValueOfSelects = new XPathExpression[nc];

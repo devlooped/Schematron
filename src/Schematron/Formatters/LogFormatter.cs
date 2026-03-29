@@ -17,7 +17,7 @@ public class LogFormatter : FormatterBase
     {
         var sb = FormatMessage(source, context, source.Message);
         // Finally remove any non-name schematron tag in the message.
-        var res = TagExpressions.AllSchematron.Replace(sb.ToString(), string.Empty);
+        var res = TagExpressions.AllSchematron().Replace(sb.ToString(), string.Empty);
         sb = new StringBuilder();
         if (source is Assert)
         {
