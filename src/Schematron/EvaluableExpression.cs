@@ -14,8 +14,8 @@ namespace Schematron;
 /// <progress amount="100" />
 public abstract class EvaluableExpression
 {
-    string xpath = null!;
-    XPathExpression expr = null!;
+    string? xpath;
+    XPathExpression? expr;
     XmlNamespaceManager? ns;
 
     /// <summary>
@@ -39,7 +39,7 @@ public abstract class EvaluableExpression
         expr = Config.DefaultNavigator.Compile(xpathExpression);
         ret = expr.ReturnType;
 
-        if (ns != null)
+        if (ns is not null)
             expr.SetContext(ns);
     }
 
@@ -48,10 +48,10 @@ public abstract class EvaluableExpression
     /// A clone of the expression is always returned, because the compiled
     /// expression is not thread-safe for evaluation.
     /// </remarks>
-    public XPathExpression CompiledExpression => expr != null ? expr.Clone() : null!;
+    public XPathExpression? CompiledExpression => expr?.Clone();
 
     /// <summary>Contains the string version of the expression.</summary>
-    public string Expression => xpath;
+    public string Expression => xpath ?? string.Empty;
 
     /// <summary>Contains the string version of the expression.</summary>
     public XPathResultType ReturnType => ret;
@@ -62,7 +62,7 @@ public abstract class EvaluableExpression
     /// <summary>Sets the manager to use to resolve expression namespaces.</summary>
     public void SetContext(XmlNamespaceManager nsManager)
     {
-        if (expr != null)
+        if (expr is not null)
         {
             // When the expression contains variable references ($name), .NET requires an
             // XsltContext (not just XmlNamespaceManager). Use a load-time stub that satisfies

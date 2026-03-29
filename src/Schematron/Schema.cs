@@ -23,6 +23,9 @@ public class Schema
     /// <summary>The default Schematron namespace. Kept for backward compatibility; prefer <see cref="IsoNamespace"/>.</summary>
     public const string Namespace = LegacyNamespace;
 
+    /// <summary>A shared empty schema instance used as a default sentinel.</summary>
+    public static Schema Empty { get; } = new();
+
     /// <summary>Returns <see langword="true"/> if <paramref name="uri"/> is a recognized Schematron namespace URI.</summary>
     public static bool IsSchematronNamespace(string? uri) => uri == IsoNamespace || uri == LegacyNamespace;
 
@@ -109,6 +112,6 @@ public class Schema
     public bool IsLibrary { get; set; }
 
     /// <summary />
-    public XmlNamespaceManager NsManager { get; set; } = null!;
+    public XmlNamespaceManager NsManager { get; set; } = new(new NameTable());
 }
 

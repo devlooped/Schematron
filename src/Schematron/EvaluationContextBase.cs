@@ -37,7 +37,7 @@ public abstract class EvaluationContextBase
     /// strategy for matching nodes is initialized, depending on the specific
     /// implementation of the <see cref="XPathNavigator"/> in use.
     /// </remarks>
-    protected IMatchedNodes? Matched { get; set; }
+    protected IMatchedNodes Matched { get; set; } = NullMatchedNodes.Instance;
 
     /// <summary>Gets or sets the class to use to format messages.</summary>
     /// <remarks>
@@ -66,7 +66,7 @@ public abstract class EvaluationContextBase
     public string Phase { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the schema to use for the validation.</summary>
-    public Schema? Schema { get; set; }
+    public Schema Schema { get; set; } = Schema.Empty;
 
     /// <remarks>
     /// When this property is set, the appropriate <see cref="IMatchedNodes"/>
@@ -74,7 +74,7 @@ public abstract class EvaluationContextBase
     /// </remarks>
     public XPathNavigator Source
     {
-        get => source!;
+        get => source ?? throw new InvalidOperationException("Source has not been set.");
         set
         {
             source = value;
@@ -108,6 +108,9 @@ public abstract class EvaluationContextBase
     /// <remarks>
     /// By default, it clears the <see cref="Messages"/> and sets <see cref="HasErrors"/> to false.
     /// </remarks>
-    protected void Reset() => Messages = new StringBuilder();
+    protected void Reset()
+    {
+        Messages.Clear();
+        HasErrors = false;
+    }
 }
-

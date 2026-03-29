@@ -20,7 +20,7 @@ public class Validator
     readonly SchemaCollection schematrons = [];
     NavigableType navtype = NavigableType.XPathDocument;
 
-    StringBuilder? errors;
+    StringBuilder errors = new();
     bool haserrors;
 
     /// <summary>
@@ -191,7 +191,7 @@ public class Validator
         if (wxs)
         {
             haserrors = false;
-            errors = new StringBuilder();
+            errors.Clear();
 
             var xs = XmlSchema.Read(new XmlTextReader(r, reader.NameTable), new ValidationEventHandler(OnValidation));
 
@@ -228,11 +228,11 @@ public class Validator
         var sch = new Schema();
         sch.Load(nav);
         schematrons.Add(sch);
-        errors = null;
+        errors.Clear();
     }
 
 
-    #region WORK IN PROGRESS :: The need the for the signature AddSchema(string targetNamespace, string schemaUri) comes from resolving imported (schemaLocation hinted) partial schemas
+    #region WORK IN PROGRESS:: The need the for the signature AddSchema(string targetNamespace, string schemaUri) comes from resolving imported (schemaLocation hinted) partial schemas
 
     bool TryAddXmlSchema(
         string targetNamespace,
@@ -258,7 +258,7 @@ public class Validator
         if (!IsStandardSchema(namespaceUri))
             return false;
 
-        errors ??= new StringBuilder();
+        errors.Clear();
 
         var set = new XmlSchemaSet
         {
@@ -307,7 +307,7 @@ public class Validator
         sch.Load(nav);
 
         schematrons.Add(sch);
-        errors = null;
+        errors.Clear();
     }
 
     #endregion
@@ -334,7 +334,7 @@ public class Validator
     /// </exception>
     public void ValidateSchematron(XPathNavigator file)
     {
-        errors = new StringBuilder();
+        errors.Clear();
         Context.Source = file;
 
         foreach (var sch in schematrons)
@@ -394,12 +394,12 @@ public class Validator
     /// <returns>The loaded <see cref="IXPathNavigable"/> instance.</returns>
     public IXPathNavigable Validate(XmlReader reader)
     {
-        errors = new StringBuilder();
+        errors.Clear();
 
         var hasxml = false;
-        StringBuilder? xmlerrors = null;
+        string? xmlErrorText = null;
         var hassch = false;
-        StringBuilder? scherrors = null;
+        string? schErrorText = null;
 
         var settings = new XmlReaderSettings
         {
@@ -439,14 +439,14 @@ public class Validator
             Context.Formatter.Format(r.Settings.Schemas, errors);
             Context.Formatter.Format(r, errors);
             hasxml = true;
-            xmlerrors = errors;
+            xmlErrorText = errors.ToString();
         }
 
         Context.Source = nav;
 
         // Reset shared variables
         haserrors = false;
-        errors = new StringBuilder();
+        errors.Clear();
 
         foreach (var sch in schematrons)
         {
@@ -462,12 +462,14 @@ public class Validator
         {
             Context.Formatter.Format(schematrons, errors);
             hassch = true;
-            scherrors = errors;
+            schErrorText = errors.ToString();
         }
 
-        errors = new StringBuilder();
-        if (hasxml) errors.Append(xmlerrors!.ToString());
-        if (hassch) errors.Append(scherrors!.ToString());
+        errors.Clear();
+        if (hasxml)
+            errors.Append(xmlErrorText);
+        if (hassch)
+            errors.Append(schErrorText);
 
         if (hasxml || hassch)
         {
@@ -487,7 +489,7 @@ public class Validator
     void OnValidation(object sender, ValidationEventArgs e)
     {
         haserrors = true;
-        Context.Formatter.Format(e, errors!);
+        Context.Formatter.Format(e, errors);
     }
 }
 
