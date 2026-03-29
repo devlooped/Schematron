@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="src/Schematron.Tests/Schematron.Tests.csproj" />
   <Project Path="src/Schematron/Schematron.csproj" />
+  <Project Path="src/Schematron.Benchmarks/Schematron.Benchmarks.csproj" />
 </Solution>
