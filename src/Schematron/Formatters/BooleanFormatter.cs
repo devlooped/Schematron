@@ -8,17 +8,8 @@ namespace Schematron.Formatters;
 /// </summary>
 public class BooleanFormatter : FormatterBase
 {
-    /// <summary />
-    public BooleanFormatter()
-    {
-    }
-
     /// <summary>
     /// Look at <see cref="IFormatter.Format(Schema, XPathNavigator, StringBuilder)"/> documentation.
     /// </summary>
-    public override void Format(Schema source, XPathNavigator context, StringBuilder output)
-    {
-        output.Append("Validation failed!");
-    }
+    public override void Format(Schema source, XPathNavigator context, StringBuilder output) => output.Append("Validation failed!");
 }
-

@@ -8,11 +8,6 @@ namespace Schematron;
 /// <see cref="Assert"/> or successful <see cref="Report"/> via the <c>@diagnostics</c> IDREFS
 /// attribute. The <c>&lt;diagnostic&gt;</c> is stored at the schema level and referenced by id.
 /// </remarks>
-public class Diagnostic
-{
-    /// <summary>Gets or sets the unique ID of this diagnostic (value of the <c>@id</c> attribute).</summary>
-    public string Id { get; set; } = String.Empty;
-
-    /// <summary>Gets or sets the raw text content / message of this diagnostic element.</summary>
-    public string Message { get; set; } = String.Empty;
-}
+/// <param name="Id">Gets or sets the unique ID of this diagnostic (value of the <c>@id</c> attribute).</param>
+/// <param name="Message">Gets or sets the raw text content / message of this diagnostic element.</param>
+public record Diagnostic(string Id, string Message);

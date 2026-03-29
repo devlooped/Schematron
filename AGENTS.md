@@ -47,8 +47,5 @@ dotnet test  Schematron.slnx
 
 ## Conventions
 
-- **Target framework**: `net48` for all projects (WebServices requires .NET Framework due to `System.Web.Services`).
-- **Versioning**: Managed by the [GitInfo](https://github.com/devlooped/GitInfo) package; base version comes from the `VERSION` file at the repo root.
-- **NuGet metadata**: Defined in `src/Directory.Build.props` and per-project `<PropertyGroup>`.
 - **C# language version**: `latest` — use modern idioms (expression-bodied members, `var`, `string.IsNullOrEmpty`, `throw;`, pattern matching).
 - **No custom build scripts**: Use standard `dotnet` CLI; no `build.cmd` / `build.proj`.

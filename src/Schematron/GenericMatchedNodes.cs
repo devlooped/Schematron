@@ -20,34 +20,24 @@ class GenericMatchedNodes : IMatchedNodes
     /// <summary>
     /// Uses a simple arraylist to keep the navigators.
     /// </summary>
-    ArrayList _matched = new ArrayList();
-
-    /// <summary>Initializes an instance of the class.</summary>
-    public GenericMatchedNodes()
-    {
-    }
+    readonly ArrayList matched = [];
 
     /// <summary>See <see cref="IMatchedNodes.IsMatched"/>.</summary>
     public bool IsMatched(XPathNavigator node)
     {
-        foreach (XPathNavigator nav in _matched)
+        foreach (XPathNavigator nav in matched)
         {
-            if (node.IsSamePosition(nav)) return true;
+            if (node.IsSamePosition(nav))
+                return true;
         }
 
         return false;
     }
 
     /// <summary>See <see cref="IMatchedNodes.AddMatched"/>.</summary>
-    public void AddMatched(XPathNavigator node)
-    {
-        _matched.Add(node.Clone());
-    }
+    public void AddMatched(XPathNavigator node) => matched.Add(node.Clone());
 
     /// <summary>See <see cref="IMatchedNodes.Clear"/>.</summary>
-    public void Clear()
-    {
-        _matched.Clear();
-    }
+    public void Clear() => matched.Clear();
 }
 

@@ -16,54 +16,40 @@ namespace Schematron;
 /// </remarks>
 public class Validator
 {
-    #region Fields & Ctors
+    readonly XmlSchemaSet xmlschemas = new();
+    readonly SchemaCollection schematrons = [];
+    NavigableType navtype = NavigableType.XPathDocument;
 
-    XmlSchemaSet _xmlschemas = new XmlSchemaSet();
-    SchemaCollection _schematrons = new SchemaCollection();
-    EvaluationContextBase _evaluationctx;
-    NavigableType _navtype = NavigableType.XPathDocument;
-
-    StringBuilder? _errors;
-    bool _haserrors;
+    StringBuilder? errors;
+    bool haserrors;
 
     /// <summary>
     /// Initializes a new instance of the class.
     /// </summary>
     public Validator()
     {
-        _evaluationctx = CreateContext();
-        _evaluationctx.Formatter = Config.DefaultFormatter;
+        Context = CreateContext();
+        Context.Formatter = Config.DefaultFormatter;
     }
 
     /// <summary>
     /// Initializes a new instance of the class, using the specified output format for error messages.
     /// </summary>
     /// <param name="format">Output format of error messages.</param>
-    public Validator(OutputFormatting format) : this()
-    {
-        InitValidator(format, NavigableType.Default);
-    }
+    public Validator(OutputFormatting format) : this() => InitValidator(format, NavigableType.Default);
 
     /// <summary>
     /// Initializes a new instance of the class, using the specified return type.
     /// </summary>
     /// <param name="type">The <see cref="IXPathNavigable"/> type to use for validation and return type.</param>
-    public Validator(NavigableType type) : this()
-    {
-        InitValidator(OutputFormatting.Default, type);
-    }
+    public Validator(NavigableType type) : this() => InitValidator(OutputFormatting.Default, type);
 
     /// <summary>
     /// Initializes a new instance of the class, using the specified options.
     /// </summary>
     /// <param name="format">Output format of error messages.</param>
     /// <param name="type">The <see cref="IXPathNavigable"/> type to use for validation and return type.</param>
-    public Validator(OutputFormatting format, NavigableType type) : this()
-    {
-        InitValidator(format, type);
-    }
-
-    #endregion Fields & Ctors
+    public Validator(OutputFormatting format, NavigableType type) : this() => InitValidator(format, type);
 
     /// <summary>
     /// Initializes the validator with the options received from the constructor overloads.
@@ -78,17 +64,17 @@ public class Validator
         switch (format)
         {
             case OutputFormatting.Boolean:
-                _evaluationctx.Formatter = new BooleanFormatter();
+                Context.Formatter = new BooleanFormatter();
                 break;
             case OutputFormatting.Log:
             case OutputFormatting.Default:
-                _evaluationctx.Formatter = new LogFormatter();
+                Context.Formatter = new LogFormatter();
                 break;
             case OutputFormatting.Simple:
-                _evaluationctx.Formatter = new SimpleFormatter();
+                Context.Formatter = new SimpleFormatter();
                 break;
             case OutputFormatting.XML:
-                _evaluationctx.Formatter = new XmlFormatter();
+                Context.Formatter = new XmlFormatter();
                 break;
         }
 
@@ -96,133 +82,94 @@ public class Validator
             throw new ArgumentException("Invalid type.", "type");
 
         // If type is Default, set it to XPathDocument.
-        _navtype = (type != NavigableType.Default) ? type : NavigableType.XPathDocument;
+        navtype = (type != NavigableType.Default) ? type : NavigableType.XPathDocument;
     }
 
-    #region Overridable Factory Methods
     /// <summary>Creates the evaluation context to use.</summary>
     /// <remarks>
     /// Inheritors can override this method should they want to 
     /// use a different strategy for node traversal and evaluation
     /// against the source file.
     /// </remarks>
-    protected virtual EvaluationContextBase CreateContext()
-    {
-        return new SyncEvaluationContext();
-    }
-    #endregion
+    protected virtual EvaluationContextBase CreateContext() => new SyncEvaluationContext();
 
-    #region Properties
     /// <summary />
-    public EvaluationContextBase Context
-    {
-        get { return _evaluationctx; }
-        set { _evaluationctx = value; }
-    }
+    public EvaluationContextBase Context { get; set; }
 
     /// <summary />
     public IFormatter Formatter
     {
-        get { return _evaluationctx.Formatter; }
-        set { _evaluationctx.Formatter = value; }
+        get => Context.Formatter;
+        set => Context.Formatter = value;
     }
 
     /// <summary />
     public NavigableType ReturnType
     {
-        get { return _navtype; }
+        get { return navtype; }
         set
         {
             if (!Enum.IsDefined(typeof(NavigableType), value))
                 throw new ArgumentException("NavigableType value is not defined.");
-            _navtype = value;
+            navtype = value;
         }
     }
 
     /// <summary />
     public string Phase
     {
-        get { return _evaluationctx.Phase; }
-        set { _evaluationctx.Phase = value; }
+        get => Context.Phase;
+        set => Context.Phase = value;
     }
 
     /// <summary>
     /// Exposes the schematron schemas to use for validation.
     /// </summary>
-    public SchemaCollection Schemas
-    {
-        get { return _schematrons; }
-    }
+    public SchemaCollection Schemas => schematrons;
 
     /// <summary>
     /// Exposes the XML schemas to use for validation.
     /// </summary>
-    public XmlSchemaSet XmlSchemas
-    {
-        get { return _xmlschemas; }
-    }
+    public XmlSchemaSet XmlSchemas => xmlschemas;
 
-    #endregion
-
-    #region AddSchema overloads
     /// <summary>
     /// Adds an XML Schema to the collection to use for validation.
     /// </summary>
-    public void AddSchema(XmlSchema schema)
-    {
-        _xmlschemas.Add(schema);
-    }
+    public void AddSchema(XmlSchema schema) => xmlschemas.Add(schema);
 
     /// <summary>
     /// Adds a Schematron schema to the collection to use for validation.
     /// </summary>
-    public void AddSchema(Schema schema)
-    {
-        _schematrons.Add(schema);
-    }
+    public void AddSchema(Schema schema) => schematrons.Add(schema);
 
     /// <summary>
     /// Adds a set of XML Schemas to the collection to use for validation.
     /// </summary>
-    public void AddSchemas(XmlSchemaSet schemas)
-    {
-        _xmlschemas.Add(schemas);
-    }
+    public void AddSchemas(XmlSchemaSet schemas) => xmlschemas.Add(schemas);
 
     /// <summary>
     /// Adds a set of Schematron schemas to the collection to use for validation.
     /// </summary>
-    public void AddSchemas(SchemaCollection schemas)
-    {
-        _schematrons.AddRange(schemas);
-    }
+    public void AddSchemas(SchemaCollection schemas) => schematrons.AddRange(schemas);
 
     /// <summary>
     /// Adds a schema to the collection to use for validation from the specified URL.
     /// </summary>
     public void AddSchema(string uri)
     {
-        using (var fs = new FileStream(uri, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            AddSchema(new XmlTextReader(fs));
-        }
+        using var fs = new FileStream(uri, FileMode.Open, FileAccess.Read, FileShare.Read);
+        AddSchema(new XmlTextReader(fs));
     }
 
     /// <summary>
     /// Adds a schema to the collection to use for validation.
     /// </summary>
-    public void AddSchema(TextReader reader)
-    {
-        AddSchema(new XmlTextReader(reader));
-    }
+    public void AddSchema(TextReader reader) => AddSchema(new XmlTextReader(reader));
 
     /// <summary>
     /// Adds a schema to the collection to use for validation.
     /// </summary>
-    public void AddSchema(Stream input)
-    {
-        AddSchema(new XmlTextReader(input));
-    }
+    public void AddSchema(Stream input) => AddSchema(new XmlTextReader(input));
 
     /// <summary>
     /// Adds a schema to the collection to use for validation.
@@ -230,20 +177,21 @@ public class Validator
     /// <remarks>Processing takes place here.</remarks>
     public void AddSchema(XmlReader reader)
     {
-        if (reader.MoveToContent() == XmlNodeType.None) throw new BadSchemaException("No information found to read");
+        if (reader.MoveToContent() == XmlNodeType.None)
+            throw new BadSchemaException("No information found to read");
 
         // Determine type of schema received.
-        bool standalone = Schema.IsSchematronNamespace(reader.NamespaceURI);
-        bool wxs = (reader.NamespaceURI == XmlSchema.Namespace);
+        var standalone = Schema.IsSchematronNamespace(reader.NamespaceURI);
+        var wxs = (reader.NamespaceURI == XmlSchema.Namespace);
 
         // The whole schema must be read first to preserve the state for later.
-        string state = reader.ReadOuterXml();
+        var state = reader.ReadOuterXml();
         var r = new StringReader(state);
 
         if (wxs)
         {
-            _haserrors = false;
-            _errors = new StringBuilder();
+            haserrors = false;
+            errors = new StringBuilder();
 
             var xs = XmlSchema.Read(new XmlTextReader(r, reader.NameTable), new ValidationEventHandler(OnValidation));
 
@@ -255,9 +203,9 @@ public class Validator
                 set.Compile();
             }
 
-            if (_haserrors) throw new BadSchemaException(_errors.ToString());
+            if (haserrors) throw new BadSchemaException(errors.ToString());
 
-            _xmlschemas.Add(xs);
+            xmlschemas.Add(xs);
         }
 
         //Schemas wouldn't be too big, so they are loaded in an XmlDocument for Schematron validation, so that
@@ -266,21 +214,21 @@ public class Validator
         //XPathNavigator nav = new XPathDocument(new XmlTextReader(r, reader.NameTable)).CreateNavigator();
         var doc = new XmlDocument(reader.NameTable);
         doc.LoadXml(state);
-        XPathNavigator nav = doc.CreateNavigator();
-        _evaluationctx.Source = nav;
+        var nav = doc.CreateNavigator();
+        Context.Source = nav;
 
         if (standalone)
             PerformValidation(Config.FullSchematron);
         else
             PerformValidation(Config.EmbeddedSchematron);
 
-        if (_evaluationctx.HasErrors)
-            throw new BadSchemaException(_evaluationctx.Messages.ToString());
+        if (Context.HasErrors)
+            throw new BadSchemaException(Context.Messages.ToString());
 
         var sch = new Schema();
         sch.Load(nav);
-        _schematrons.Add(sch);
-        _errors = null;
+        schematrons.Add(sch);
+        errors = null;
     }
 
 
@@ -299,35 +247,32 @@ public class Validator
         nameTable = null;
         namespaceUri = null;
 
-        using (var reader = XmlReader.Create(schemaUri))
+        using var reader = XmlReader.Create(schemaUri);
+        if (reader.MoveToContent() == XmlNodeType.None)
+            throw new BadSchemaException("No information found to read");
+
+        nameTable = reader.NameTable;
+        namespaceUri = reader.NamespaceURI;
+        xmlContent = reader.ReadOuterXml();
+
+        if (!IsStandardSchema(namespaceUri))
+            return false;
+
+        errors ??= new StringBuilder();
+
+        var set = new XmlSchemaSet
         {
-            if (reader.MoveToContent() == XmlNodeType.None)
-            {
-                throw new BadSchemaException("No information found to read");
-            }
+            XmlResolver = new XmlUrlResolver()
+        };
+        set.Add(targetNamespace, new Uri(Path.GetFullPath(schemaUri)).AbsoluteUri);
 
-            nameTable = reader.NameTable;
-            namespaceUri = reader.NamespaceURI;
-            xmlContent = reader.ReadOuterXml();
+        if (!set.IsCompiled)
+            set.Compile();
 
-            if (!IsStandardSchema(namespaceUri))
-                return false;
+        if (haserrors) throw new BadSchemaException(errors.ToString());
 
-            if (_errors == null)
-                _errors = new StringBuilder();
-
-            var set = new XmlSchemaSet();
-            set.XmlResolver = new XmlUrlResolver();
-            set.Add(targetNamespace, new Uri(Path.GetFullPath(schemaUri)).AbsoluteUri);
-
-            if (!set.IsCompiled)
-                set.Compile();
-
-            if (_haserrors) throw new BadSchemaException(_errors.ToString());
-
-            foreach (XmlSchema s in set.Schemas())
-                schemaSet.Add(s);
-        }
+        foreach (XmlSchema s in set.Schemas())
+            schemaSet.Add(s);
 
         return true;
     }
@@ -342,35 +287,32 @@ public class Validator
     /// <remarks>Validation takes place here.</remarks>
     public void AddSchema(string targetNamespace, string schemaUri)
     {
-        TryAddXmlSchema(targetNamespace, schemaUri, _xmlschemas, OnValidation, out var xmlContent, out var nameTable, out var namespaceUri);
+        TryAddXmlSchema(targetNamespace, schemaUri, xmlschemas, OnValidation, out var xmlContent, out var nameTable, out var namespaceUri);
 
         var doc = new XmlDocument(nameTable!);
         doc.LoadXml(xmlContent!);
 
-        XPathNavigator nav = doc.CreateNavigator();
-        _evaluationctx.Source = nav;
+        var nav = doc.CreateNavigator();
+        Context.Source = nav;
 
         if (IsStandaloneSchematron(namespaceUri))
             PerformValidation(Config.FullSchematron);
         else
             PerformValidation(Config.EmbeddedSchematron);
 
-        if (_evaluationctx.HasErrors)
-            throw new BadSchemaException(_evaluationctx.Messages.ToString());
+        if (Context.HasErrors)
+            throw new BadSchemaException(Context.Messages.ToString());
 
         var sch = new Schema();
         sch.Load(nav);
 
-        _schematrons.Add(sch);
-        _errors = null;
+        schematrons.Add(sch);
+        errors = null;
     }
 
     #endregion
 
 
-    #endregion
-
-    #region Validation Methods
     /// <summary>
     /// Performs Schematron-only validation.
     /// </summary>
@@ -382,10 +324,7 @@ public class Validator
     /// <exception cref="ValidationException">
     /// The document is invalid with respect to the loaded schemas.
     /// </exception>
-    public void ValidateSchematron(IXPathNavigable source)
-    {
-        ValidateSchematron(source.CreateNavigator());
-    }
+    public void ValidateSchematron(IXPathNavigable source) => ValidateSchematron(source.CreateNavigator());
 
     /// <summary>
     /// Performs Schematron-only validation.
@@ -395,26 +334,26 @@ public class Validator
     /// </exception>
     public void ValidateSchematron(XPathNavigator file)
     {
-        _errors = new StringBuilder();
-        _evaluationctx.Source = file;
+        errors = new StringBuilder();
+        Context.Source = file;
 
-        foreach (Schema sch in _schematrons)
+        foreach (var sch in schematrons)
         {
             PerformValidation(sch);
-            if (_evaluationctx.HasErrors)
+            if (Context.HasErrors)
             {
-                _haserrors = true;
-                _errors.Append(_evaluationctx.Messages.ToString());
+                haserrors = true;
+                errors.Append(Context.Messages.ToString());
             }
         }
 
-        if (_haserrors)
+        if (haserrors)
         {
-            _evaluationctx.Formatter.Format(_errors);
-            throw new ValidationException(_errors.ToString());
+            Context.Formatter.Format(errors);
+            throw new ValidationException(errors.ToString());
         }
 
-        if (_haserrors) throw new ValidationException(_errors.ToString());
+        if (haserrors) throw new ValidationException(errors.ToString());
     }
 
     /// <summary>Performs validation of the document at the specified URI.</summary>
@@ -425,10 +364,8 @@ public class Validator
     /// <returns>The loaded <see cref="IXPathNavigable"/> instance.</returns>
     public IXPathNavigable Validate(string uri)
     {
-        using (var fs = new FileStream(uri, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            return Validate(new XmlTextReader(fs));
-        }
+        using var fs = new FileStream(uri, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Validate(new XmlTextReader(fs));
     }
 
     /// <summary>Performs validation of the document using the specified reader.</summary>
@@ -438,10 +375,7 @@ public class Validator
     /// The document is invalid with respect to the loaded schemas.
     /// </exception>
     /// <returns>The loaded <see cref="IXPathNavigable"/> instance.</returns>
-    public IXPathNavigable Validate(TextReader reader)
-    {
-        return Validate(new XmlTextReader(reader));
-    }
+    public IXPathNavigable Validate(TextReader reader) => Validate(new XmlTextReader(reader));
 
     /// <summary>Performs validation of the document using the specified stream.</summary>
     /// <param name="input">The stream with the document to validate.</param>
@@ -449,10 +383,7 @@ public class Validator
     /// The document is invalid with respect to the loaded schemas.
     /// </exception>
     /// <returns>The loaded <see cref="IXPathNavigable"/> instance.</returns>
-    public IXPathNavigable Validate(Stream input)
-    {
-        return Validate(new XmlTextReader(input));
-    }
+    public IXPathNavigable Validate(Stream input) => Validate(new XmlTextReader(input));
 
     /// <summary>Performs validation of the document using the received reader.</summary>
     /// <remarks>Where the actual work takes place</remarks>
@@ -463,11 +394,11 @@ public class Validator
     /// <returns>The loaded <see cref="IXPathNavigable"/> instance.</returns>
     public IXPathNavigable Validate(XmlReader reader)
     {
-        _errors = new StringBuilder();
+        errors = new StringBuilder();
 
-        bool hasxml = false;
+        var hasxml = false;
         StringBuilder? xmlerrors = null;
-        bool hassch = false;
+        var hassch = false;
         StringBuilder? scherrors = null;
 
         var settings = new XmlReaderSettings
@@ -476,7 +407,7 @@ public class Validator
         };
         settings.ValidationEventHandler += OnValidation;
 
-        foreach (XmlSchema xsd in _xmlschemas.Schemas())
+        foreach (XmlSchema xsd in xmlschemas.Schemas())
             settings.Schemas.Add(xsd);
 
         var r = XmlReader.Create(reader, settings);
@@ -486,7 +417,7 @@ public class Validator
 
         try
         {
-            if (_navtype == NavigableType.XmlDocument)
+            if (navtype == NavigableType.XmlDocument)
             {
                 navdoc = new XmlDocument(r.NameTable);
                 ((XmlDocument)navdoc).Load(r);
@@ -503,61 +434,60 @@ public class Validator
 
         nav = navdoc.CreateNavigator();
 
-        if (_haserrors)
+        if (haserrors)
         {
-            _evaluationctx.Formatter.Format(r.Settings.Schemas, _errors);
-            _evaluationctx.Formatter.Format(r, _errors);
+            Context.Formatter.Format(r.Settings.Schemas, errors);
+            Context.Formatter.Format(r, errors);
             hasxml = true;
-            xmlerrors = _errors;
+            xmlerrors = errors;
         }
 
-        _evaluationctx.Source = nav;
+        Context.Source = nav;
 
         // Reset shared variables
-        _haserrors = false;
-        _errors = new StringBuilder();
+        haserrors = false;
+        errors = new StringBuilder();
 
-        foreach (Schema sch in _schematrons)
+        foreach (var sch in schematrons)
         {
             PerformValidation(sch);
-            if (_evaluationctx.HasErrors)
+            if (Context.HasErrors)
             {
-                _haserrors = true;
-                _errors.Append(_evaluationctx.Messages.ToString());
+                haserrors = true;
+                errors.Append(Context.Messages.ToString());
             }
         }
 
-        if (_haserrors)
+        if (haserrors)
         {
-            _evaluationctx.Formatter.Format(_schematrons, _errors);
+            Context.Formatter.Format(schematrons, errors);
             hassch = true;
-            scherrors = _errors;
+            scherrors = errors;
         }
 
-        _errors = new StringBuilder();
-        if (hasxml) _errors.Append(xmlerrors!.ToString());
-        if (hassch) _errors.Append(scherrors!.ToString());
+        errors = new StringBuilder();
+        if (hasxml) errors.Append(xmlerrors!.ToString());
+        if (hassch) errors.Append(scherrors!.ToString());
 
         if (hasxml || hassch)
         {
-            _evaluationctx.Formatter.Format(_errors);
-            throw new ValidationException(_errors.ToString());
+            Context.Formatter.Format(errors);
+            throw new ValidationException(errors.ToString());
         }
 
         return navdoc;
     }
-    #endregion
 
     void PerformValidation(Schema schema)
     {
-        _evaluationctx.Schema = schema;
-        _evaluationctx.Start();
+        Context.Schema = schema;
+        Context.Start();
     }
 
     void OnValidation(object sender, ValidationEventArgs e)
     {
-        _haserrors = true;
-        _evaluationctx.Formatter.Format(e, _errors!);
+        haserrors = true;
+        Context.Formatter.Format(e, errors!);
     }
 }
 

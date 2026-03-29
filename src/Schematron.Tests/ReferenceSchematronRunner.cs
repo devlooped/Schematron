@@ -16,9 +16,9 @@ static class ReferenceSchematronRunner
     const string XsltDir = "./Content/xslt";
     const string SvrlNs = "http://purl.oclc.org/dsdl/svrl";
 
-    static readonly XslCompiledTransform _include = LoadXslt(Path.Combine(XsltDir, "iso_dsdl_include.xsl"));
-    static readonly XslCompiledTransform _abstract = LoadXslt(Path.Combine(XsltDir, "iso_abstract_expand.xsl"));
-    static readonly XslCompiledTransform _svrl = LoadXslt(Path.Combine(XsltDir, "iso_svrl_for_xslt1.xsl"));
+    static readonly XslCompiledTransform include = LoadXslt(Path.Combine(XsltDir, "iso_dsdl_include.xsl"));
+    static readonly XslCompiledTransform abstractExpand = LoadXslt(Path.Combine(XsltDir, "iso_abstract_expand.xsl"));
+    static readonly XslCompiledTransform svrl = LoadXslt(Path.Combine(XsltDir, "iso_svrl_for_xslt1.xsl"));
 
     static XslCompiledTransform LoadXslt(string path)
     {
@@ -36,14 +36,14 @@ static class ReferenceSchematronRunner
     public static SvrlResult Validate(string schemaPath, string xmlContent, string? phase = null)
     {
         // Step 1: resolve includes
-        string included = ApplyTransform(_include, ReadFile(schemaPath), baseUri: Path.GetFullPath(schemaPath));
+        string included = ApplyTransform(include, ReadFile(schemaPath), baseUri: Path.GetFullPath(schemaPath));
         // Step 2: expand abstract patterns
-        string expanded = ApplyTransform(_abstract, included);
+        string expanded = ApplyTransform(abstractExpand, included);
         // Step 3: generate validator XSLT from schema
         var svrlArgs = new XsltArgumentList();
         if (!string.IsNullOrEmpty(phase))
             svrlArgs.AddParam("phase", "", phase);
-        string validatorXslt = ApplyTransform(_svrl, expanded, args: svrlArgs);
+        string validatorXslt = ApplyTransform(ReferenceSchematronRunner.svrl, expanded, args: svrlArgs);
         // Step 4: apply validator XSLT to the XML instance
         var validator = new XslCompiledTransform();
         using (var validatorReader = XmlReader.Create(new StringReader(validatorXslt)))

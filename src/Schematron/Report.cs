@@ -22,8 +22,6 @@ public class Report : Test
     /// <summary>Initializes a new instance of the class with the parameters specified.</summary>
     /// <param name="test">The XPath expression to test.</param>
     /// <param name="message">The message to return.</param>
-    internal protected Report(string test, string message) : base(test, message)
-    {
-    }
+    internal protected Report(string test, string message) : base(test, message) { }
 }
 

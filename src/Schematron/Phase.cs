@@ -19,10 +19,7 @@ namespace Schematron;
 /// <progress amount="100" />
 public class Phase
 {
-    string _id = String.Empty;
-    string _from = String.Empty;
-    string _when = String.Empty;
-    PatternCollection _patterns = new PatternCollection();
+    readonly PatternCollection patterns = [];
 
     /// <summary>
     /// The identifier to check for All phases.
@@ -33,38 +30,23 @@ public class Phase
 
     /// <summary>Initializes a new instance of the class with the specified Id.</summary>
     /// <param name="id">The Id of the new phase.</param>
-    internal protected Phase(string id)
-    {
-        Id = id;
-    }
+    internal protected Phase(string id) => Id = id;
 
     /// <summary>Initializes a new instance of the class.</summary>
-    internal protected Phase()
-    {
-    }
+    internal protected Phase() { }
 
-    #region Properties
     /// <summary />
-    public string Id
-    {
-        get { return _id; }
-        set { _id = value; }
-    }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the scope restriction path for this phase (<c>@from</c> attribute, ISO Schematron 2025).</summary>
-    public string From { get => _from; set => _from = value; }
+    public string From { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the enabling condition for this phase (<c>@when</c> attribute, ISO Schematron 2025).</summary>
-    public string When { get => _when; set => _when = value; }
+    public string When { get; set; } = string.Empty;
 
     /// <summary>Gets the collection of child <see cref="Pattern"/> elements.</summary>
-    public PatternCollection Patterns
-    {
-        get { return _patterns; }
-    }
-    #endregion
+    public PatternCollection Patterns => patterns;
 
-    #region Overridable Factory Methods
     /// <summary>Creates a new pattern instance.</summary>
     /// <remarks>
     /// Inheritors should override this method to create instances
@@ -72,23 +54,16 @@ public class Phase
     /// </remarks>
     /// <param name="name">The name of the new pattern.</param>
     /// <param name="id">The unique identifier of the new pattern.</param>
-    public virtual Pattern CreatePattern(string name, string id)
-    {
-        return new Pattern(name, id);
-    }
+    public virtual Pattern CreatePattern(string name, string id) => new Pattern(name, id);
 
     /// <summary>Creates a new pattern instance.</summary>
     /// <remarks>
     /// This method calls the overloaded version passing a default
-    /// <see cref="String.Empty"/> value for the pattern's id.
+    /// <see cref="string.Empty"/> value for the pattern's id.
     /// Inheritors can override this method if they want to provide
     /// a different default value.
     /// </remarks>
     /// <param name="name">The name of the new pattern.</param>
-    public virtual Pattern CreatePattern(string name)
-    {
-        return CreatePattern(name, String.Empty);
-    }
-    #endregion
+    public virtual Pattern CreatePattern(string name) => CreatePattern(name, string.Empty);
 }
 

@@ -1,4 +1,3 @@
-using System.Xml;
 using System.Xml.XPath;
 
 namespace Schematron;
@@ -32,7 +31,7 @@ class CompiledExpressions
 
     static CompiledExpressions()
     {
-        XmlNamespaceManager mgr = Config.DefaultNsManager;
+        var mgr = Config.DefaultNsManager;
 
         Schema = Config.DefaultNavigator.Compile("//sch:schema");
         Schema.SetContext(mgr);
@@ -75,8 +74,6 @@ class CompiledExpressions
         // Diagnostics.SetContext(mgr);
     }
 
-    CompiledExpressions()
-    {
-    }
+    CompiledExpressions() { }
 }
 

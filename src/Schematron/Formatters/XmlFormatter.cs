@@ -11,11 +11,6 @@ namespace Schematron.Formatters;
 /// </summary>
 public class XmlFormatter : FormatterBase
 {
-    /// <summary />
-    public XmlFormatter()
-    {
-    }
-
     /// <summary>
     /// Namespace of generated output.
     /// </summary>
@@ -26,10 +21,12 @@ public class XmlFormatter : FormatterBase
     /// </summary>
     public override void Format(Test source, XPathNavigator context, StringBuilder output)
     {
-        string msg = source.Message;
-        var writer = new XmlTextWriter(new StringWriter(output));
-        //Temporary disable namespace support.
-        writer.Namespaces = false;
+        var msg = source.Message;
+        var writer = new XmlTextWriter(new StringWriter(output))
+        {
+            //Temporary disable namespace support.
+            Namespaces = false
+        };
 
         // Start element declaration.
         writer.WriteStartElement("message");
@@ -44,7 +41,7 @@ public class XmlFormatter : FormatterBase
         msg = FormatMessage(source, context, msg).ToString();
 
         // Finally remove any non-name schematron tag in the message.
-        string res = TagExpressions.AllSchematron.Replace(msg, String.Empty);
+        var res = TagExpressions.AllSchematron.Replace(msg, string.Empty);
 
         //Accumulate namespaces found during traversal of node for its position.
         var ns = new Hashtable();
@@ -52,11 +49,11 @@ public class XmlFormatter : FormatterBase
         // Write <text> element.
         writer.WriteElementString("text", res);
         // Write <path> element.
-        writer.WriteElementString("path", FormattingUtils.GetFullNodePosition(context.Clone(), String.Empty, source, ns));
+        writer.WriteElementString("path", FormattingUtils.GetFullNodePosition(context.Clone(), string.Empty, source, ns));
         // Write <summary> element.
         //writer.WriteElementString("summary", FormattingUtils.GetNodeSummary(context, ns, String.Empty));
         writer.WriteStartElement("summary");
-        writer.WriteRaw(FormattingUtils.GetNodeSummary(context, ns, String.Empty));
+        writer.WriteRaw(FormattingUtils.GetNodeSummary(context, ns, string.Empty));
         writer.WriteEndElement();
 
         // Write <position> element.
@@ -78,8 +75,8 @@ public class XmlFormatter : FormatterBase
     /// </summary>
     public override void Format(Rule source, XPathNavigator context, StringBuilder output)
     {
-        string res = "<rule context=\"" + source.Context + "\" ";
-        if (source.Id != String.Empty) res += "id=\"" + source.Id + "\" ";
+        var res = "<rule context=\"" + source.Context + "\" ";
+        if (source.Id != string.Empty) res += "id=\"" + source.Id + "\" ";
         res += ">";
 
         output.Insert(0, res);
@@ -91,9 +88,9 @@ public class XmlFormatter : FormatterBase
     /// </summary>
     public override void Format(Pattern source, XPathNavigator context, StringBuilder output)
     {
-        string elemName = source is Group ? "group" : "pattern";
-        string res = "<" + elemName + " name=\"" + source.Name + "\" ";
-        if (source.Id != String.Empty) res += "id=\"" + source.Id + "\" ";
+        var elemName = source is Group ? "group" : "pattern";
+        var res = "<" + elemName + " name=\"" + source.Name + "\" ";
+        if (source.Id != string.Empty) res += "id=\"" + source.Id + "\" ";
         res += ">";
 
         output.Insert(0, res);
@@ -125,8 +122,8 @@ public class XmlFormatter : FormatterBase
                     source.NsManager.LookupNamespace(source.NsManager.NameTable.Get(prefix)));
         }
 
-        if (source.Title != String.Empty) writer.WriteAttributeString("title", source.Title);
-        if (source.SchematronEdition != String.Empty) writer.WriteAttributeString("schematronEdition", source.SchematronEdition);
+        if (source.Title != string.Empty) writer.WriteAttributeString("title", source.Title);
+        if (source.SchematronEdition != string.Empty) writer.WriteAttributeString("schematronEdition", source.SchematronEdition);
 
         writer.WriteRaw(output.ToString());
         writer.WriteEndElement();
@@ -145,7 +142,7 @@ public class XmlFormatter : FormatterBase
         writer.WriteStartElement("message");
 
         // Write <text> element.
-        writer.WriteElementString("text", FormattingUtils.XmlErrorPosition.Replace(source.Message, String.Empty));
+        writer.WriteElementString("text", FormattingUtils.XmlErrorPosition.Replace(source.Message, string.Empty));
 
         // Write <position> element.
         writer.WriteStartElement("position");
@@ -215,8 +212,10 @@ public class XmlFormatter : FormatterBase
         output.Remove(0, output.Length);
 
         // Create indented output.
-        writer = new XmlTextWriter(new StringWriter(output));
-        writer.Formatting = Formatting.Indented;
+        writer = new XmlTextWriter(new StringWriter(output))
+        {
+            Formatting = Formatting.Indented
+        };
         writer.WriteStartDocument();
         writer.WriteNode(new XmlTextReader(new StringReader(sb.ToString())), false);
         writer.WriteEndDocument();

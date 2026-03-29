@@ -21,8 +21,6 @@ public class Assert : Test
     /// <summary>Constructs a new Assert object.</summary>
     /// <param name="test">XPath expression to test.</param>
     /// <param name="message">Message to display if the assert fails.</param>
-    internal protected Assert(string test, string message) : base(test, message)
-    {
-    }
+    internal protected Assert(string test, string message) : base(test, message) { }
 }
 

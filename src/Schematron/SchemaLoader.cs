@@ -1,59 +1,57 @@
 using System.Collections;
-using System.IO;
 using System.Xml;
 using System.Xml.XPath;
 
 namespace Schematron;
 
-/// <summary />
-public class SchemaLoader
+/// <summary>
+/// Loads and parses Schematron schema documents from an XPathNavigator source.
+/// Detects the Schematron namespace (ISO or legacy), compiles XPath expressions,
+/// and populates a Schema object with phases, patterns, rules, assertions, reports,
+/// and diagnostics. Supports abstract pattern instantiation with parameter substitution,
+/// rule extension through abstract rules, and schema composition via extends references.
+/// </summary>
+public class SchemaLoader(Schema schema)
 {
-    Schema _schema;
-    XPathNavigator _filenav = null!;
-    Hashtable? _abstracts = null;
+    XPathNavigator filenav = null!;
+    Hashtable? abstracts = null;
 
     // Detected Schematron namespace and the namespace manager derived from the source document.
-    string _schNs = null!;
-    XmlNamespaceManager _mgr = null!;
+    string schNs = null!;
+    XmlNamespaceManager mgr = null!;
 
     // Instance-level XPath expressions compiled against the detected namespace.
-    XPathExpression _exprSchema = null!;
-    XPathExpression _exprEmbeddedSchema = null!;
-    XPathExpression _exprPhase = null!;
-    XPathExpression _exprPattern = null!;
-    XPathExpression _exprAbstractRule = null!;
-    XPathExpression _exprConcreteRule = null!;
-    XPathExpression _exprRuleExtends = null!;
-    XPathExpression _exprAssert = null!;
-    XPathExpression _exprReport = null!;
-    XPathExpression _exprLet = null!;
-    XPathExpression _exprDiagnostic = null!;
-    XPathExpression _exprParam = null!;
-    XPathExpression _exprLibrary = null!;
-    XPathExpression _exprRulesContainer = null!;
-    XPathExpression _exprGroup = null!;
-
-    /// <summary />
-    public SchemaLoader(Schema schema)
-    {
-        _schema = schema;
-    }
+    XPathExpression exprSchema = null!;
+    XPathExpression exprEmbeddedSchema = null!;
+    XPathExpression exprPhase = null!;
+    XPathExpression exprPattern = null!;
+    XPathExpression exprAbstractRule = null!;
+    XPathExpression exprConcreteRule = null!;
+    XPathExpression exprRuleExtends = null!;
+    XPathExpression exprAssert = null!;
+    XPathExpression exprReport = null!;
+    XPathExpression exprLet = null!;
+    XPathExpression exprDiagnostic = null!;
+    XPathExpression exprParam = null!;
+    XPathExpression exprLibrary = null!;
+    XPathExpression exprRulesContainer = null!;
+    XPathExpression exprGroup = null!;
 
     /// <summary />
     /// <param name="source"></param>
     public virtual void LoadSchema(XPathNavigator source)
     {
-        _schema.NsManager = new XmlNamespaceManager(source.NameTable);
+        schema.NsManager = new XmlNamespaceManager(source.NameTable);
 
         DetectAndBuildExpressions(source);
 
-        XPathNodeIterator it = source.Select(_exprSchema);
+        var it = source.Select(exprSchema);
         if (it.Count > 1)
             throw new BadSchemaException("There can be at most one schema element per Schematron schema.");
 
         // Always work with the whole document to look for elements.
         // Embedded schematron will work as well as stand-alone schemas.
-        _filenav = source;
+        filenav = source;
 
         if (it.Count == 1)
         {
@@ -63,25 +61,23 @@ public class SchemaLoader
         else
         {
             // Check for <library> root element (ISO Schematron 2025)
-            XPathNodeIterator libIt = source.Select(_exprLibrary);
+            var libIt = source.Select(exprLibrary);
             if (libIt.Count == 1)
             {
                 libIt.MoveNext();
-                _schema.IsLibrary = true;
+                schema.IsLibrary = true;
                 LoadSchemaElement(libIt.Current);
             }
             else
             {
                 // Load child elements from the appinfo element if it exists.
-                LoadSchemaElements(source.Select(_exprEmbeddedSchema));
+                LoadSchemaElements(source.Select(exprEmbeddedSchema));
             }
         }
 
-        #region Loading process start
         RetrieveAbstractRules();
         LoadPhases();
         LoadPatterns();
-        #endregion
     }
 
     /// <summary>
@@ -90,27 +86,27 @@ public class SchemaLoader
     /// </summary>
     void DetectAndBuildExpressions(XPathNavigator source)
     {
-        _schNs = DetectSchematronNamespace(source);
+        schNs = DetectSchematronNamespace(source);
 
-        _mgr = new XmlNamespaceManager(source.NameTable);
-        _mgr.AddNamespace("sch", _schNs);
-        _mgr.AddNamespace("xsd", System.Xml.Schema.XmlSchema.Namespace);
+        mgr = new XmlNamespaceManager(source.NameTable);
+        mgr.AddNamespace("sch", schNs);
+        mgr.AddNamespace("xsd", System.Xml.Schema.XmlSchema.Namespace);
 
-        _exprSchema = Compile("//sch:schema");
-        _exprEmbeddedSchema = Compile("xsd:schema/xsd:annotation/xsd:appinfo/*");
-        _exprPhase = Compile("descendant-or-self::sch:phase");
-        _exprPattern = Compile("//sch:pattern");
-        _exprAbstractRule = Compile("//sch:rule[@abstract=\"true\"]");
-        _exprConcreteRule = Compile("descendant-or-self::sch:rule[not(@abstract) or @abstract=\"false\"]");
-        _exprRuleExtends = Compile("descendant-or-self::sch:extends");
-        _exprAssert = Compile("descendant-or-self::sch:assert");
-        _exprReport = Compile("descendant-or-self::sch:report");
-        _exprLet = Compile("sch:let");
-        _exprDiagnostic = Compile("sch:diagnostics/sch:diagnostic");
-        _exprParam = Compile("sch:param");
-        _exprLibrary = Compile("//sch:library");
-        _exprRulesContainer = Compile("//sch:rules/sch:rule");
-        _exprGroup = Compile("//sch:group");
+        exprSchema = Compile("//sch:schema");
+        exprEmbeddedSchema = Compile("xsd:schema/xsd:annotation/xsd:appinfo/*");
+        exprPhase = Compile("descendant-or-self::sch:phase");
+        exprPattern = Compile("//sch:pattern");
+        exprAbstractRule = Compile("//sch:rule[@abstract=\"true\"]");
+        exprConcreteRule = Compile("descendant-or-self::sch:rule[not(@abstract) or @abstract=\"false\"]");
+        exprRuleExtends = Compile("descendant-or-self::sch:extends");
+        exprAssert = Compile("descendant-or-self::sch:assert");
+        exprReport = Compile("descendant-or-self::sch:report");
+        exprLet = Compile("sch:let");
+        exprDiagnostic = Compile("sch:diagnostics/sch:diagnostic");
+        exprParam = Compile("sch:param");
+        exprLibrary = Compile("//sch:library");
+        exprRulesContainer = Compile("//sch:rules/sch:rule");
+        exprGroup = Compile("//sch:group");
     }
 
     /// <summary>
@@ -143,22 +139,22 @@ public class SchemaLoader
     XPathExpression Compile(string xpath)
     {
         var expr = Config.DefaultNavigator.Compile(xpath);
-        expr.SetContext(_mgr);
+        expr.SetContext(mgr);
         return expr;
     }
 
     void LoadSchemaElement(XPathNavigator context)
     {
-        string phase = context.GetAttribute("defaultPhase", String.Empty);
-        if (phase != String.Empty)
-            _schema.DefaultPhase = phase;
+        var phase = context.GetAttribute("defaultPhase", string.Empty);
+        if (phase != string.Empty)
+            schema.DefaultPhase = phase;
 
-        string edition = context.GetAttribute("schematronEdition", String.Empty);
-        if (edition != String.Empty)
-            _schema.SchematronEdition = edition;
+        var edition = context.GetAttribute("schematronEdition", string.Empty);
+        if (edition != string.Empty)
+            schema.SchematronEdition = edition;
 
         LoadSchemaElements(context.SelectChildren(XPathNodeType.Element));
-        LoadLets(_schema.Lets, context);
+        LoadLets(schema.Lets, context);
         LoadDiagnostics(context);
         LoadSchemaParams(context);
         LoadExtendsHref(context);
@@ -168,17 +164,17 @@ public class SchemaLoader
     {
         while (children.MoveNext())
         {
-            if (children.Current.NamespaceURI == _schNs)
+            if (children.Current.NamespaceURI == schNs)
             {
                 if (children.Current.LocalName == "title")
                 {
-                    _schema.Title = children.Current.Value;
+                    schema.Title = children.Current.Value;
                 }
                 else if (children.Current.LocalName == "ns")
                 {
-                    _schema.NsManager.AddNamespace(
-                        children.Current.GetAttribute("prefix", String.Empty),
-                        children.Current.GetAttribute("uri", String.Empty));
+                    schema.NsManager.AddNamespace(
+                        children.Current.GetAttribute("prefix", string.Empty),
+                        children.Current.GetAttribute("uri", string.Empty));
                 }
             }
         }
@@ -186,86 +182,86 @@ public class SchemaLoader
 
     void RetrieveAbstractRules()
     {
-        _filenav.MoveToRoot();
-        XPathNodeIterator it = _filenav.Select(_exprAbstractRule);
+        filenav.MoveToRoot();
+        var it = filenav.Select(exprAbstractRule);
 
         // Also check for rules inside <rules> containers (implicitly abstract)
-        _filenav.MoveToRoot();
-        XPathNodeIterator rulesContainerIt = _filenav.Select(_exprRulesContainer);
+        filenav.MoveToRoot();
+        var rulesContainerIt = filenav.Select(exprRulesContainer);
 
         if (it.Count == 0 && rulesContainerIt.Count == 0) return;
 
-        _abstracts = new Hashtable(it.Count + rulesContainerIt.Count);
+        abstracts = new(it.Count + rulesContainerIt.Count);
 
         // Dummy pattern to use for rule creation purposes. 
         // TODO: is there a better factory method implementation?
-        Pattern pt = _schema.CreatePhase(String.Empty).CreatePattern(String.Empty);
+        var pt = schema.CreatePhase(string.Empty).CreatePattern(string.Empty);
 
         while (it.MoveNext())
         {
-            Rule rule = pt.CreateRule();
-            rule.SetContext(_schema.NsManager);
-            rule.Id = it.Current.GetAttribute("id", String.Empty);
+            var rule = pt.CreateRule();
+            rule.SetContext(schema.NsManager);
+            rule.Id = it.Current.GetAttribute("id", string.Empty);
             LoadAsserts(rule, it.Current);
             LoadReports(rule, it.Current);
-            _abstracts.Add(rule.Id, rule);
+            abstracts.Add(rule.Id, rule);
         }
 
         // Also collect rules inside <rules> containers (implicitly abstract, even without @abstract="true")
         while (rulesContainerIt.MoveNext())
         {
-            string ruleId = rulesContainerIt.Current.GetAttribute("id", String.Empty);
+            var ruleId = rulesContainerIt.Current.GetAttribute("id", string.Empty);
             if (ruleId.Length == 0) continue;
-            if (_abstracts.ContainsKey(ruleId)) continue;
+            if (abstracts.ContainsKey(ruleId)) continue;
 
-            Rule rule = pt.CreateRule();
-            rule.SetContext(_schema.NsManager);
+            var rule = pt.CreateRule();
+            rule.SetContext(schema.NsManager);
             rule.Id = ruleId;
             LoadAsserts(rule, rulesContainerIt.Current);
             LoadReports(rule, rulesContainerIt.Current);
-            _abstracts.Add(rule.Id, rule);
+            abstracts.Add(rule.Id, rule);
         }
     }
 
     void LoadPhases()
     {
-        _filenav.MoveToRoot();
-        XPathNodeIterator phases = _filenav.Select(_exprPhase);
+        filenav.MoveToRoot();
+        var phases = filenav.Select(exprPhase);
         if (phases.Count == 0) return;
 
         while (phases.MoveNext())
         {
-            Phase ph = _schema.CreatePhase(phases.Current.GetAttribute("id", String.Empty));
-            ph.From = phases.Current.GetAttribute("from", String.Empty);
-            ph.When = phases.Current.GetAttribute("when", String.Empty);
-            _schema.Phases.Add(ph);
+            var ph = schema.CreatePhase(phases.Current.GetAttribute("id", string.Empty));
+            ph.From = phases.Current.GetAttribute("from", string.Empty);
+            ph.When = phases.Current.GetAttribute("when", string.Empty);
+            schema.Phases.Add(ph);
         }
     }
 
     void LoadPatterns()
     {
-        _filenav.MoveToRoot();
-        XPathNodeIterator patterns = _filenav.Select(_exprPattern);
-        _filenav.MoveToRoot();
-        XPathNodeIterator groups = _filenav.Select(_exprGroup);
+        filenav.MoveToRoot();
+        var patterns = filenav.Select(exprPattern);
+        filenav.MoveToRoot();
+        var groups = filenav.Select(exprGroup);
 
         if (patterns.Count == 0 && groups.Count == 0) return;
 
         // A special #ALL phase which contains all the patterns in the schema.
-        Phase phase = _schema.CreatePhase(Phase.All);
+        var phase = schema.CreatePhase(Phase.All);
 
         while (patterns.MoveNext())
         {
             // Skip abstract patterns — they are templates; only instantiated via @is-a.
-            bool isAbstract = patterns.Current.GetAttribute("abstract", String.Empty) == "true";
+            var isAbstract = patterns.Current.GetAttribute("abstract", string.Empty) == "true";
             if (isAbstract) continue;
 
-            Pattern pt = phase.CreatePattern(patterns.Current.GetAttribute("name", String.Empty),
-                patterns.Current.GetAttribute("id", String.Empty));
+            var pt = phase.CreatePattern(patterns.Current.GetAttribute("name", string.Empty),
+                patterns.Current.GetAttribute("id", string.Empty));
 
             LoadLets(pt.Lets, patterns.Current);
 
-            string isA = patterns.Current.GetAttribute("is-a", String.Empty);
+            var isA = patterns.Current.GetAttribute("is-a", string.Empty);
             if (isA.Length > 0)
             {
                 // Instantiate abstract pattern: collect param values, load rules from template.
@@ -277,22 +273,22 @@ public class SchemaLoader
                 LoadRules(pt, patterns.Current);
             }
 
-            _schema.Patterns.Add(pt);
+            schema.Patterns.Add(pt);
             phase.Patterns.Add(pt);
 
-            if (pt.Id != String.Empty)
+            if (pt.Id != string.Empty)
             {
                 // Select the phases in which this pattern is active, and add it 
                 // to its collection of patterns. 
                 // TODO: try to precompile this. Is it possible?
-                XPathExpression expr = Config.DefaultNavigator.Compile(
+                var expr = Config.DefaultNavigator.Compile(
                     "//sch:phase[sch:active/@pattern=\"" + pt.Id + "\"]/@id");
-                expr.SetContext(_mgr);
-                XPathNodeIterator phases = _filenav.Select(expr);
+                expr.SetContext(mgr);
+                var phases = filenav.Select(expr);
 
                 while (phases.MoveNext())
                 {
-                    _schema.Phases[phases.Current.Value].Patterns.Add(pt);
+                    schema.Phases[phases.Current.Value].Patterns.Add(pt);
                 }
             }
         }
@@ -301,38 +297,38 @@ public class SchemaLoader
         while (groups.MoveNext())
         {
             var grp = new Group(
-                groups.Current.GetAttribute("name", String.Empty),
-                groups.Current.GetAttribute("id", String.Empty));
+                groups.Current.GetAttribute("name", string.Empty),
+                groups.Current.GetAttribute("id", string.Empty));
 
             LoadLets(grp.Lets, groups.Current);
             LoadRules(grp, groups.Current);
-            _schema.Patterns.Add(grp);
+            schema.Patterns.Add(grp);
             phase.Patterns.Add(grp);
 
-            if (grp.Id != String.Empty)
+            if (grp.Id != string.Empty)
             {
-                XPathExpression expr = Config.DefaultNavigator.Compile(
+                var expr = Config.DefaultNavigator.Compile(
                     "//sch:phase[sch:active/@pattern=\"" + grp.Id + "\"]/@id");
-                expr.SetContext(_mgr);
-                XPathNodeIterator phases = _filenav.Select(expr);
+                expr.SetContext(mgr);
+                var phases = filenav.Select(expr);
                 while (phases.MoveNext())
-                    _schema.Phases[phases.Current.Value].Patterns.Add(grp);
+                    schema.Phases[phases.Current.Value].Patterns.Add(grp);
             }
         }
 
-        _schema.Phases.Add(phase);
+        schema.Phases.Add(phase);
     }
 
     static Dictionary<string, string> LoadParams(XPathNavigator context)
     {
         var d = new Dictionary<string, string>(StringComparer.Ordinal);
-        XPathNodeIterator it = context.SelectChildren(XPathNodeType.Element);
+        var it = context.SelectChildren(XPathNodeType.Element);
         while (it.MoveNext())
         {
             if (it.Current.LocalName == "param")
             {
-                string name = it.Current.GetAttribute("name", String.Empty);
-                string value = it.Current.GetAttribute("value", String.Empty);
+                var name = it.Current.GetAttribute("name", string.Empty);
+                var value = it.Current.GetAttribute("value", string.Empty);
                 if (name.Length > 0)
                     d[name] = value;
             }
@@ -343,30 +339,30 @@ public class SchemaLoader
     void LoadRulesFromAbstractPattern(Pattern target, string abstractId, Dictionary<string, string> paramValues)
     {
         // Find the abstract pattern node in the document.
-        XPathExpression expr = Config.DefaultNavigator.Compile(
+        var expr = Config.DefaultNavigator.Compile(
             "//sch:pattern[@abstract=\"true\" and @id=\"" + abstractId + "\"]");
-        expr.SetContext(_mgr);
-        _filenav.MoveToRoot();
-        XPathNodeIterator it = _filenav.Select(expr);
+        expr.SetContext(mgr);
+        filenav.MoveToRoot();
+        var it = filenav.Select(expr);
         if (!it.MoveNext()) return;
 
-        XPathNodeIterator rules = it.Current.Select(_exprConcreteRule);
+        var rules = it.Current.Select(exprConcreteRule);
         while (rules.MoveNext())
         {
-            string ruleContext = SubstituteParams(
-                rules.Current.GetAttribute("context", String.Empty), paramValues);
+            var ruleContext = SubstituteParams(
+                rules.Current.GetAttribute("context", string.Empty), paramValues);
 
-            Rule rule = target.CreateRule(ruleContext);
-            rule.Id = rules.Current.GetAttribute("id", String.Empty);
-            rule.SetContext(_schema.NsManager);
+            var rule = target.CreateRule(ruleContext);
+            rule.Id = rules.Current.GetAttribute("id", string.Empty);
+            rule.SetContext(schema.NsManager);
             LoadLets(rule.Lets, rules.Current);
 
-            string ruleFlag = rules.Current.GetAttribute("flag", String.Empty);
+            var ruleFlag = rules.Current.GetAttribute("flag", string.Empty);
             rule.Flag = string.IsNullOrWhiteSpace(ruleFlag)
-                ? Array.Empty<string>()
+                ? []
                 : ruleFlag.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-            rule.VisitEach = rules.Current.GetAttribute("visit-each", String.Empty);
+            rule.VisitEach = rules.Current.GetAttribute("visit-each", string.Empty);
 
             // Load asserts/reports with parameter substitution applied to test expressions.
             LoadAssertsWithSubstitution(rule, rules.Current, paramValues);
@@ -385,25 +381,25 @@ public class SchemaLoader
 
     void LoadRules(Pattern pattern, XPathNavigator context)
     {
-        XPathNodeIterator rules = context.Select(_exprConcreteRule);
+        var rules = context.Select(exprConcreteRule);
         if (rules.Count == 0) return;
 
         while (rules.MoveNext())
         {
-            Rule rule = pattern.CreateRule(rules.Current.GetAttribute("context", String.Empty));
-            rule.Id = rules.Current.GetAttribute("id", String.Empty);
-            rule.SetContext(_schema.NsManager);
+            var rule = pattern.CreateRule(rules.Current.GetAttribute("context", string.Empty));
+            rule.Id = rules.Current.GetAttribute("id", string.Empty);
+            rule.SetContext(schema.NsManager);
             LoadLets(rule.Lets, rules.Current);
             LoadExtends(rule, rules.Current);
             LoadAsserts(rule, rules.Current);
             LoadReports(rule, rules.Current);
 
-            string ruleFlag = rules.Current.GetAttribute("flag", String.Empty);
+            var ruleFlag = rules.Current.GetAttribute("flag", string.Empty);
             rule.Flag = string.IsNullOrWhiteSpace(ruleFlag)
-                ? Array.Empty<string>()
+                ? []
                 : ruleFlag.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-            rule.VisitEach = rules.Current.GetAttribute("visit-each", String.Empty);
+            rule.VisitEach = rules.Current.GetAttribute("visit-each", string.Empty);
 
             pattern.Rules.Add(rule);
         }
@@ -411,16 +407,14 @@ public class SchemaLoader
 
     void LoadLets(LetCollection lets, XPathNavigator context)
     {
-        XPathNodeIterator it = context.Select(_exprLet);
+        var it = context.Select(exprLet);
         while (it.MoveNext())
         {
-            var let = new Let
-            {
-                Name = it.Current.GetAttribute("name", String.Empty),
-                Value = it.Current.GetAttribute("value", String.Empty),
-                As = it.Current.GetAttribute("as", String.Empty) is { Length: > 0 } a ? a : null,
-            };
-            if (let.Value?.Length == 0) let.Value = null;
+            var let = new Let(
+                it.Current.GetAttribute("name", string.Empty),
+                it.Current.GetAttribute("value", string.Empty) is { Length: > 0 } value ? value : null,
+                it.Current.GetAttribute("as", string.Empty) is { Length: > 0 } a ? a : null);
+
             if (!lets.Contains(let.Name))
                 lets.Add(let);
         }
@@ -428,14 +422,14 @@ public class SchemaLoader
 
     void LoadExtends(Rule rule, XPathNavigator context)
     {
-        XPathNodeIterator extends = context.Select(_exprRuleExtends);
+        var extends = context.Select(exprRuleExtends);
         if (extends.Count == 0) return;
 
         while (extends.MoveNext())
         {
-            string ruleName = extends.Current.GetAttribute("rule", String.Empty);
-            if (_abstracts != null && _abstracts.ContainsKey(ruleName))
-                rule.Extend((Rule)_abstracts[ruleName]!);
+            var ruleName = extends.Current.GetAttribute("rule", string.Empty);
+            if (abstracts != null && abstracts.ContainsKey(ruleName))
+                rule.Extend((Rule)abstracts[ruleName]!);
             else
                 throw new BadSchemaException("The abstract rule with id=\"" + ruleName + "\" is used but not defined.");
         }
@@ -443,18 +437,18 @@ public class SchemaLoader
 
     void LoadAsserts(Rule rule, XPathNavigator context)
     {
-        XPathNodeIterator asserts = context.Select(_exprAssert);
+        var asserts = context.Select(exprAssert);
         if (asserts.Count == 0) return;
 
         while (asserts.MoveNext())
         {
-            string testExpr = asserts.Current.GetAttribute("test", String.Empty);
-            string message = asserts.Current is IHasXmlNode node
+            var testExpr = asserts.Current.GetAttribute("test", string.Empty);
+            var message = asserts.Current is IHasXmlNode node
                 ? node.GetNode().InnerXml
                 : asserts.Current.Value;
 
-            Assert asr = rule.CreateAssert(testExpr, message);
-            asr.SetContext(_schema.NsManager);
+            var asr = rule.CreateAssert(testExpr, message);
+            asr.SetContext(schema.NsManager);
             ReadTestAttributes(asr, asserts.Current);
             rule.Asserts.Add(asr);
         }
@@ -462,18 +456,18 @@ public class SchemaLoader
 
     void LoadReports(Rule rule, XPathNavigator context)
     {
-        XPathNodeIterator reports = context.Select(_exprReport);
+        var reports = context.Select(exprReport);
         if (reports.Count == 0) return;
 
         while (reports.MoveNext())
         {
-            string testExpr = reports.Current.GetAttribute("test", String.Empty);
-            string message = reports.Current is IHasXmlNode node
+            var testExpr = reports.Current.GetAttribute("test", string.Empty);
+            var message = reports.Current is IHasXmlNode node
                 ? node.GetNode().InnerXml
                 : reports.Current.Value;
 
-            Report rpt = rule.CreateReport(testExpr, message);
-            rpt.SetContext(_schema.NsManager);
+            var rpt = rule.CreateReport(testExpr, message);
+            rpt.SetContext(schema.NsManager);
             ReadTestAttributes(rpt, reports.Current);
             rule.Reports.Add(rpt);
         }
@@ -481,35 +475,36 @@ public class SchemaLoader
 
     void LoadDiagnostics(XPathNavigator context)
     {
-        XPathNodeIterator it = context.Select(_exprDiagnostic);
+        var it = context.Select(exprDiagnostic);
         while (it.MoveNext())
         {
-            string id = it.Current.GetAttribute("id", String.Empty);
-            if (id.Length == 0) continue;
-            string msg = it.Current is IHasXmlNode node
+            if (it.Current.GetAttribute("id", string.Empty) is not { Length: > 0 } id)
+                continue;
+
+            var msg = it.Current is IHasXmlNode node
                 ? node.GetNode().InnerXml
                 : it.Current.Value;
-            if (!_schema.Diagnostics.Contains(id))
-                _schema.Diagnostics.Add(new Diagnostic { Id = id, Message = msg });
+            if (!schema.Diagnostics.Contains(id))
+                schema.Diagnostics.Add(new Diagnostic(id, msg));
         }
     }
 
     void LoadAssertsWithSubstitution(Rule rule, XPathNavigator context, Dictionary<string, string> paramValues)
     {
-        XPathNodeIterator asserts = context.Select(_exprAssert);
+        var asserts = context.Select(exprAssert);
         if (asserts.Count == 0) return;
 
         while (asserts.MoveNext())
         {
-            string testExpr = SubstituteParams(
-                asserts.Current.GetAttribute("test", String.Empty), paramValues);
-            string message = asserts.Current is IHasXmlNode node
+            var testExpr = SubstituteParams(
+                asserts.Current.GetAttribute("test", string.Empty), paramValues);
+            var message = asserts.Current is IHasXmlNode node
                 ? node.GetNode().InnerXml
                 : asserts.Current.Value;
             message = SubstituteParams(message, paramValues);
 
-            Assert asr = rule.CreateAssert(testExpr, message);
-            asr.SetContext(_schema.NsManager);
+            var asr = rule.CreateAssert(testExpr, message);
+            asr.SetContext(schema.NsManager);
             ReadTestAttributes(asr, asserts.Current);
             rule.Asserts.Add(asr);
         }
@@ -517,20 +512,20 @@ public class SchemaLoader
 
     void LoadReportsWithSubstitution(Rule rule, XPathNavigator context, Dictionary<string, string> paramValues)
     {
-        XPathNodeIterator reports = context.Select(_exprReport);
-        if (reports.Count == 0) return;
+        if (context.Select(exprReport) is not { Count: > 0 } reports)
+            return;
 
         while (reports.MoveNext())
         {
-            string testExpr = SubstituteParams(
-                reports.Current.GetAttribute("test", String.Empty), paramValues);
-            string message = reports.Current is IHasXmlNode node
+            var testExpr = SubstituteParams(
+                reports.Current.GetAttribute("test", string.Empty), paramValues);
+            var message = reports.Current is IHasXmlNode node
                 ? node.GetNode().InnerXml
                 : reports.Current.Value;
             message = SubstituteParams(message, paramValues);
 
-            Report rpt = rule.CreateReport(testExpr, message);
-            rpt.SetContext(_schema.NsManager);
+            var rpt = rule.CreateReport(testExpr, message);
+            rpt.SetContext(schema.NsManager);
             ReadTestAttributes(rpt, reports.Current);
             rule.Reports.Add(rpt);
         }
@@ -538,36 +533,37 @@ public class SchemaLoader
 
     static void ReadTestAttributes(Test test, XPathNavigator nav)
     {
-        test.Id = nav.GetAttribute("id", String.Empty);
-        test.Role = nav.GetAttribute("role", String.Empty);
-        test.Severity = nav.GetAttribute("severity", String.Empty);
+        test.Id = nav.GetAttribute("id", string.Empty);
+        test.Role = nav.GetAttribute("role", string.Empty);
+        test.Severity = nav.GetAttribute("severity", string.Empty);
 
-        string flag = nav.GetAttribute("flag", String.Empty);
+        var flag = nav.GetAttribute("flag", string.Empty);
         test.Flag = string.IsNullOrWhiteSpace(flag)
-            ? Array.Empty<string>()
+            ? []
             : flag.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-        string diagnostics = nav.GetAttribute("diagnostics", String.Empty);
+        var diagnostics = nav.GetAttribute("diagnostics", string.Empty);
         test.DiagnosticRefs = string.IsNullOrWhiteSpace(diagnostics)
-            ? Array.Empty<string>()
+            ? []
             : diagnostics.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     }
 
     void LoadSchemaParams(XPathNavigator context)
     {
-        XPathNodeIterator it = context.SelectChildren(XPathNodeType.Element);
+        var it = context.SelectChildren(XPathNodeType.Element);
         while (it.MoveNext())
         {
             if (it.Current.LocalName == "param" && Schema.IsSchematronNamespace(it.Current.NamespaceURI))
             {
-                string name = it.Current.GetAttribute("name", String.Empty);
-                string value = it.Current.GetAttribute("value", String.Empty);
-                if (name.Length > 0 && !_schema.Params.Contains(name))
+                var name = it.Current.GetAttribute("name", string.Empty);
+                var value = it.Current.GetAttribute("value", string.Empty);
+
+                if (name.Length > 0 && !schema.Params.Contains(name))
                 {
-                    _schema.Params.Add(new Param { Name = name, Value = value });
+                    schema.Params.Add(new Param { Name = name, Value = value });
                     // Also expose as a schema-level let so they're available as variables
-                    if (!_schema.Lets.Contains(name))
-                        _schema.Lets.Add(new Let { Name = name, Value = value });
+                    if (!schema.Lets.Contains(name))
+                        schema.Lets.Add(new Let(name, value is { Length: > 0 } ? value : null));
                 }
             }
         }
@@ -575,23 +571,22 @@ public class SchemaLoader
 
     void LoadExtendsHref(XPathNavigator context)
     {
-        XPathNodeIterator children = context.SelectChildren(XPathNodeType.Element);
+        var children = context.SelectChildren(XPathNodeType.Element);
         while (children.MoveNext())
         {
             if (children.Current.LocalName != "extends") continue;
             if (!Schema.IsSchematronNamespace(children.Current.NamespaceURI)) continue;
-            string href = children.Current.GetAttribute("href", String.Empty);
+            var href = children.Current.GetAttribute("href", string.Empty);
             if (string.IsNullOrEmpty(href)) continue;
 
             // Resolve the href relative to the schema's base URI
             string resolvedPath;
-            string baseUri = context.BaseURI;
+            var baseUri = context.BaseURI;
             if (!string.IsNullOrEmpty(baseUri))
             {
                 try
                 {
-                    Uri resolved = new Uri(new Uri(baseUri), href);
-                    resolvedPath = resolved.LocalPath;
+                    resolvedPath = new Uri(new Uri(baseUri), href).LocalPath;
                 }
                 catch
                 {
@@ -611,14 +606,14 @@ public class SchemaLoader
                 extSchema.Load(resolvedPath);
 
                 // Merge diagnostics
-                foreach (Diagnostic d in extSchema.Diagnostics)
-                    if (!_schema.Diagnostics.Contains(d.Id))
-                        _schema.Diagnostics.Add(d);
+                foreach (var d in extSchema.Diagnostics)
+                    if (!schema.Diagnostics.Contains(d.Id))
+                        schema.Diagnostics.Add(d);
 
                 // Merge schema-level lets
-                foreach (Let let in extSchema.Lets)
-                    if (!_schema.Lets.Contains(let.Name))
-                        _schema.Lets.Add(let);
+                foreach (var let in extSchema.Lets)
+                    if (!schema.Lets.Contains(let.Name))
+                        schema.Lets.Add(let);
             }
             catch { /* skip extends that can't be loaded */ }
         }
