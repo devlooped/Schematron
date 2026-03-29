@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>Schematron</AssemblyName>
     <RootNamespace>Schematron</RootNamespace>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Schematron.NET</PackageId>
     <LangVersion>Latest</LangVersion>
@@ -11,13 +11,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Schematron.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="PolySharp" Version="1.15.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
 </Project>
