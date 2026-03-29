@@ -35,3 +35,13 @@ public interface IMatchedNodes
     void Clear();
 }
 
+/// <summary>No-op sentinel used as a default before a real matching strategy is selected.</summary>
+class NullMatchedNodes : IMatchedNodes
+{
+    public static NullMatchedNodes Instance { get; } = new();
+
+    public bool IsMatched(XPathNavigator node) => false;
+    public void AddMatched(XPathNavigator node) { }
+    public void Clear() { }
+}
+

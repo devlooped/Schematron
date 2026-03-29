@@ -104,7 +104,7 @@ public abstract class FormatterBase : IFormatter
             sb.Append(msg[offset..name.Index]);
 
             // Does the name element have a path attribute?
-            if (nameExpr != null)
+            if (nameExpr is not null)
             {
                 SetExpressionContext(nameExpr, source, ambientCtx);
 
@@ -122,11 +122,11 @@ public abstract class FormatterBase : IFormatter
                     result = context.Evaluate(nameExpr) as string;
                 }
 
-                if (result != null)
+                if (result is not null)
                     sb.Append(result);
             }
             // Does the value-of element have a select attribute?
-            else if (selectExpr != null)
+            else if (selectExpr is not null)
             {
                 SetExpressionContext(selectExpr, source, ambientCtx);
 
@@ -143,7 +143,7 @@ public abstract class FormatterBase : IFormatter
                     result = context.Evaluate(selectExpr) as string;
                 }
 
-                if (result != null)
+                if (result is not null)
                     sb.Append(result);
             }
             // If there is no path or select expression, there is an empty <name> element.
@@ -159,14 +159,14 @@ public abstract class FormatterBase : IFormatter
 
     static void SetExpressionContext(XPathExpression expr, Test source, SchematronXsltContext? ambientCtx)
     {
-        if (ambientCtx != null)
+        if (ambientCtx is not null)
         {
             try { expr.SetContext(ambientCtx); return; }
             catch (System.Xml.XPath.XPathException) { /* fall through */ }
         }
 
         var ns = source.GetContext();
-        if (ns == null) return;
+        if (ns is null) return;
         try { expr.SetContext(ns); }
         catch (System.Xml.XPath.XPathException)
         {

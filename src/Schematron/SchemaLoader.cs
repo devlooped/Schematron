@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Xml;
 using System.Xml.XPath;
 
@@ -14,31 +15,37 @@ namespace Schematron;
 public class SchemaLoader(Schema schema)
 {
     XPathNavigator filenav = null!;
-    Hashtable? abstracts = null;
+    Hashtable? abstracts;
 
     // Detected Schematron namespace and the namespace manager derived from the source document.
-    string schNs = null!;
-    XmlNamespaceManager mgr = null!;
+    string? schNs;
+    XmlNamespaceManager? mgr;
 
     // Instance-level XPath expressions compiled against the detected namespace.
-    XPathExpression exprSchema = null!;
-    XPathExpression exprEmbeddedSchema = null!;
-    XPathExpression exprPhase = null!;
-    XPathExpression exprPattern = null!;
-    XPathExpression exprAbstractRule = null!;
-    XPathExpression exprConcreteRule = null!;
-    XPathExpression exprRuleExtends = null!;
-    XPathExpression exprAssert = null!;
-    XPathExpression exprReport = null!;
-    XPathExpression exprLet = null!;
-    XPathExpression exprDiagnostic = null!;
-    XPathExpression exprParam = null!;
-    XPathExpression exprLibrary = null!;
-    XPathExpression exprRulesContainer = null!;
-    XPathExpression exprGroup = null!;
+    XPathExpression? exprSchema;
+    XPathExpression? exprEmbeddedSchema;
+    XPathExpression? exprPhase;
+    XPathExpression? exprPattern;
+    XPathExpression? exprAbstractRule;
+    XPathExpression? exprConcreteRule;
+    XPathExpression? exprRuleExtends;
+    XPathExpression? exprAssert;
+    XPathExpression? exprReport;
+    XPathExpression? exprLet;
+    XPathExpression? exprDiagnostic;
+    XPathExpression? exprParam;
+    XPathExpression? exprLibrary;
+    XPathExpression? exprRulesContainer;
+    XPathExpression? exprGroup;
 
     /// <summary />
     /// <param name="source"></param>
+    [MemberNotNull(nameof(schNs), nameof(mgr),
+        nameof(exprSchema), nameof(exprEmbeddedSchema), nameof(exprPhase),
+        nameof(exprPattern), nameof(exprAbstractRule), nameof(exprConcreteRule),
+        nameof(exprRuleExtends), nameof(exprAssert), nameof(exprReport),
+        nameof(exprLet), nameof(exprDiagnostic), nameof(exprParam),
+        nameof(exprLibrary), nameof(exprRulesContainer), nameof(exprGroup))]
     public virtual void LoadSchema(XPathNavigator source)
     {
         schema.NsManager = new XmlNamespaceManager(source.NameTable);
@@ -84,6 +91,12 @@ public class SchemaLoader(Schema schema)
     /// Detects the Schematron namespace used in <paramref name="source"/> and compiles all
     /// instance-level XPath expressions against that namespace.
     /// </summary>
+    [MemberNotNull(nameof(schNs), nameof(mgr),
+        nameof(exprSchema), nameof(exprEmbeddedSchema), nameof(exprPhase),
+        nameof(exprPattern), nameof(exprAbstractRule), nameof(exprConcreteRule),
+        nameof(exprRuleExtends), nameof(exprAssert), nameof(exprReport),
+        nameof(exprLet), nameof(exprDiagnostic), nameof(exprParam),
+        nameof(exprLibrary), nameof(exprRulesContainer), nameof(exprGroup))]
     void DetectAndBuildExpressions(XPathNavigator source)
     {
         schNs = DetectSchematronNamespace(source);
@@ -428,7 +441,7 @@ public class SchemaLoader(Schema schema)
         while (extends.MoveNext())
         {
             var ruleName = extends.Current.GetAttribute("rule", string.Empty);
-            if (abstracts != null && abstracts.ContainsKey(ruleName))
+            if (abstracts?.ContainsKey(ruleName) == true)
                 rule.Extend((Rule)abstracts[ruleName]!);
             else
                 throw new BadSchemaException("The abstract rule with id=\"" + ruleName + "\" is used but not defined.");

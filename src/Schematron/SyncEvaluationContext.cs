@@ -27,7 +27,7 @@ class SyncEvaluationContext : EvaluationContextBase
         Reset();
 
         // Is there something to evaluate at all?
-        if (Schema is null || Schema.Patterns.Count == 0)
+        if (Schema.Patterns.Count == 0)
             return;
 
         // If no phase was received, try the default phase defined for the schema.
@@ -35,7 +35,7 @@ class SyncEvaluationContext : EvaluationContextBase
         if (Phase == string.Empty)
             Phase = Schema.DefaultPhase is { Length: > 0 } phase ? phase : Schematron.Phase.All;
 
-        if (Phase != Schematron.Phase.All && Schema.Phases[Phase] == null)
+        if (Phase != Schematron.Phase.All && Schema.Phases[Phase] is null)
             throw new ArgumentException("The specified Phase isn't defined for the current schema.");
 
         if (Evaluate(Schema.Phases[Phase], Messages))
@@ -118,13 +118,14 @@ class SyncEvaluationContext : EvaluationContextBase
         // Reset matched nodes, as across patters, nodes can be 
         // evaluated more than once.
         Matched.Clear();
-        var isGroup = pattern is Group;
 
         foreach (var rule in pattern.Rules)
         {
             // For groups (ISO Schematron 2025), each rule evaluates independently.
-            if (isGroup) Matched.Clear();
-            if (Evaluate(rule, sb, BuildLets(pattern.Lets))) failed = true;
+            if (pattern is Group)
+                Matched.Clear();
+            if (Evaluate(rule, sb, BuildLets(pattern.Lets)))
+                failed = true;
         }
         if (failed)
         {
@@ -176,7 +177,8 @@ class SyncEvaluationContext : EvaluationContextBase
         var failed = false;
         var sb = new StringBuilder();
         Source.MoveToRoot();
-        var nodes = Source.Select(rule.CompiledExpression);
+        // Non-abstract rules always have a compiled expression (guarded by IsAbstract check above).
+        var nodes = Source.Select(rule.CompiledExpression!);
         var evaluables = new ArrayList(nodes.Count);
 
         // The navigator doesn't contain line info
@@ -253,7 +255,7 @@ class SyncEvaluationContext : EvaluationContextBase
     bool EvaluateAssert(Assert assert, XPathNavigator context, StringBuilder output,
         Dictionary<string, string>? patternLets = null, LetCollection? ruleLets = null)
     {
-        var expr = PrepareExpression(assert.CompiledExpression, context, patternLets, ruleLets, out var xsltCtx);
+        var expr = PrepareExpression(assert.CompiledExpression!, context, patternLets, ruleLets, out var xsltCtx);
         var eval = context.Evaluate(expr);
         var result = true;
 
@@ -293,7 +295,7 @@ class SyncEvaluationContext : EvaluationContextBase
     bool EvaluateReport(Report report, XPathNavigator context, StringBuilder output,
         Dictionary<string, string>? patternLets = null, LetCollection? ruleLets = null)
     {
-        var expr = PrepareExpression(report.CompiledExpression, context, patternLets, ruleLets, out var xsltCtx);
+        var expr = PrepareExpression(report.CompiledExpression!, context, patternLets, ruleLets, out var xsltCtx);
         var eval = context.Evaluate(expr);
         var result = false;
 
@@ -322,13 +324,18 @@ class SyncEvaluationContext : EvaluationContextBase
 
     Dictionary<string, string> BuildLets(LetCollection? extraLets = null)
     {
-        var d = new Dictionary<string, string>(StringComparer.Ordinal);
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+
         foreach (var let in Schema.Lets)
-            if (let.Value is not null) d[let.Name] = let.Value;
-        if (extraLets != null)
+            if (let.Value is not null)
+                result[let.Name] = let.Value;
+
+        if (extraLets is not null)
             foreach (var let in extraLets)
-                if (let.Value is not null) d[let.Name] = let.Value;
-        return d;
+                if (let.Value is not null)
+                    result[let.Name] = let.Value;
+
+        return result;
     }
 
     // Prepares an XPathExpression to be evaluated with variable support.
@@ -341,14 +348,20 @@ class SyncEvaluationContext : EvaluationContextBase
         out SchematronXsltContext? xsltCtx)
     {
         var hasVars = (Schema.Lets.Count + (patternLets?.Count ?? 0) + (ruleLets?.Count ?? 0)) > 0;
-        if (!hasVars) { xsltCtx = null; return expr; }
+        if (!hasVars)
+        {
+            xsltCtx = null;
+            return expr;
+        }
 
         var vars = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var let in Schema.Lets)
             if (let.Value is not null) vars[let.Name] = let.Value;
-        if (patternLets != null)
+
+        if (patternLets is not null)
             foreach (var kv in patternLets) vars[kv.Key] = kv.Value;
-        if (ruleLets != null)
+
+        if (ruleLets is not null)
             foreach (var let in ruleLets)
                 if (let.Value is not null) vars[let.Name] = let.Value;
 
