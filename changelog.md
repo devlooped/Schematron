@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.0.0](https://github.com/devlooped/Schematron/tree/v1.0.0) (2026-04-29)
+
+[Full Changelog](https://github.com/devlooped/Schematron/compare/v1.0.0-beta...v1.0.0)
+
 ## [v1.0.0-beta](https://github.com/devlooped/Schematron/tree/v1.0.0-beta) (2026-04-29)
 
 [Full Changelog](https://github.com/devlooped/Schematron/compare/1.0.0-alpha...v1.0.0-beta)
@@ -10,7 +14,7 @@
 
 ## [1.0.0-alpha](https://github.com/devlooped/Schematron/tree/1.0.0-alpha) (2026-04-08)
 
-[Full Changelog](https://github.com/devlooped/Schematron/compare/64b27181092a0a3ad298d4e50a604c3f1b073549...1.0.0-alpha)
+[Full Changelog](https://github.com/devlooped/Schematron/compare/v0.6.18...1.0.0-alpha)
 
 :sparkles: Implemented enhancements:
 
@@ -27,6 +31,10 @@
 - XsltContext is needed for this query because of an unknown function. [\#7](https://github.com/devlooped/Schematron/issues/7)
 - License question [\#6](https://github.com/devlooped/Schematron/issues/6)
 - The given path's format is not supported [\#5](https://github.com/devlooped/Schematron/issues/5)
+
+## [v0.6.18](https://github.com/devlooped/Schematron/tree/v0.6.18) (2016-06-10)
+
+[Full Changelog](https://github.com/devlooped/Schematron/compare/64b27181092a0a3ad298d4e50a604c3f1b073549...v0.6.18)
 
 :twisted_rightwards_arrows: Merged:
 
