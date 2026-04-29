@@ -193,7 +193,7 @@ public class Validator
             haserrors = false;
             errors.Clear();
 
-            var xs = XmlSchema.Read(new XmlTextReader(r, reader.NameTable), new ValidationEventHandler(OnValidation));
+            var xs = XPathHelpers.ReadRequired(new XmlTextReader(r, reader.NameTable), OnValidation);
 
             var set = new XmlSchemaSet();
             set.Add(xs);
@@ -214,7 +214,7 @@ public class Validator
         //XPathNavigator nav = new XPathDocument(new XmlTextReader(r, reader.NameTable)).CreateNavigator();
         var doc = new XmlDocument(reader.NameTable);
         doc.LoadXml(state);
-        var nav = doc.CreateNavigator();
+        var nav = doc.CreateRequiredNavigator();
         Context.Source = nav;
 
         if (standalone)
@@ -292,7 +292,7 @@ public class Validator
         var doc = new XmlDocument(nameTable!);
         doc.LoadXml(xmlContent!);
 
-        var nav = doc.CreateNavigator();
+        var nav = doc.CreateRequiredNavigator();
         Context.Source = nav;
 
         if (IsStandaloneSchematron(namespaceUri))
@@ -324,7 +324,7 @@ public class Validator
     /// <exception cref="ValidationException">
     /// The document is invalid with respect to the loaded schemas.
     /// </exception>
-    public void ValidateSchematron(IXPathNavigable source) => ValidateSchematron(source.CreateNavigator());
+    public void ValidateSchematron(IXPathNavigable source) => ValidateSchematron(source.CreateRequiredNavigator());
 
     /// <summary>
     /// Performs Schematron-only validation.
@@ -432,11 +432,13 @@ public class Validator
             reader.Close();
         }
 
-        nav = navdoc.CreateNavigator();
+        nav = navdoc.CreateRequiredNavigator();
 
         if (haserrors)
         {
-            Context.Formatter.Format(r.Settings.Schemas, errors);
+            var readerSchemas = r.Settings?.Schemas
+                ?? throw new InvalidOperationException("The validating reader does not expose schema settings.");
+            Context.Formatter.Format(readerSchemas, errors);
             Context.Formatter.Format(r, errors);
             hasxml = true;
             xmlErrorText = errors.ToString();
@@ -486,7 +488,7 @@ public class Validator
         Context.Start();
     }
 
-    void OnValidation(object sender, ValidationEventArgs e)
+    void OnValidation(object? sender, ValidationEventArgs e)
     {
         haserrors = true;
         Context.Formatter.Format(e, errors);

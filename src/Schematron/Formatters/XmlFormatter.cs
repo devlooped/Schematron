@@ -3,6 +3,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.XPath;
+using Schematron;
 
 namespace Schematron.Formatters;
 
@@ -118,8 +119,14 @@ public class XmlFormatter : FormatterBase
         foreach (string prefix in source.NsManager)
         {
             if (!prefix.StartsWith("xml"))
-                writer.WriteAttributeString("xmlns", prefix, null,
-                    source.NsManager.LookupNamespace(source.NsManager.NameTable.Get(prefix)));
+            {
+                var nameTable = source.NsManager.NameTable
+                    ?? throw new InvalidOperationException("The namespace manager does not have an associated name table.");
+                var namespacePrefix = nameTable.Get(prefix) ?? prefix;
+                var namespaceUri = source.NsManager.LookupNamespace(namespacePrefix);
+                if (namespaceUri is not null)
+                    writer.WriteAttributeString("xmlns", prefix, null, namespaceUri);
+            }
         }
 
         if (source.Title != string.Empty) writer.WriteAttributeString("title", source.Title);

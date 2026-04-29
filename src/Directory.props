@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Product>Schematron.NET</Product>
     <Description>A C# high-performance implementation of Schematron ISO/IEC standard</Description>
-    <PackageProjectUrl>https://github.com/kzu/Schematron</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/devlooped/Schematron</PackageProjectUrl>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 

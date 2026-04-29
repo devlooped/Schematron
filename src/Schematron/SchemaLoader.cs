@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Xml;
 using System.Xml.XPath;
 
@@ -18,34 +17,28 @@ public class SchemaLoader(Schema schema)
     Hashtable? abstracts;
 
     // Detected Schematron namespace and the namespace manager derived from the source document.
-    string? schNs;
-    XmlNamespaceManager? mgr;
+    string schNs = string.Empty;
+    XmlNamespaceManager mgr = null!;
 
     // Instance-level XPath expressions compiled against the detected namespace.
-    XPathExpression? exprSchema;
-    XPathExpression? exprEmbeddedSchema;
-    XPathExpression? exprPhase;
-    XPathExpression? exprPattern;
-    XPathExpression? exprAbstractRule;
-    XPathExpression? exprConcreteRule;
-    XPathExpression? exprRuleExtends;
-    XPathExpression? exprAssert;
-    XPathExpression? exprReport;
-    XPathExpression? exprLet;
-    XPathExpression? exprDiagnostic;
-    XPathExpression? exprParam;
-    XPathExpression? exprLibrary;
-    XPathExpression? exprRulesContainer;
-    XPathExpression? exprGroup;
+    XPathExpression exprSchema = null!;
+    XPathExpression exprEmbeddedSchema = null!;
+    XPathExpression exprPhase = null!;
+    XPathExpression exprPattern = null!;
+    XPathExpression exprAbstractRule = null!;
+    XPathExpression exprConcreteRule = null!;
+    XPathExpression exprRuleExtends = null!;
+    XPathExpression exprAssert = null!;
+    XPathExpression exprReport = null!;
+    XPathExpression exprLet = null!;
+    XPathExpression exprDiagnostic = null!;
+    XPathExpression exprParam = null!;
+    XPathExpression exprLibrary = null!;
+    XPathExpression exprRulesContainer = null!;
+    XPathExpression exprGroup = null!;
 
     /// <summary />
     /// <param name="source"></param>
-    [MemberNotNull(nameof(schNs), nameof(mgr),
-        nameof(exprSchema), nameof(exprEmbeddedSchema), nameof(exprPhase),
-        nameof(exprPattern), nameof(exprAbstractRule), nameof(exprConcreteRule),
-        nameof(exprRuleExtends), nameof(exprAssert), nameof(exprReport),
-        nameof(exprLet), nameof(exprDiagnostic), nameof(exprParam),
-        nameof(exprLibrary), nameof(exprRulesContainer), nameof(exprGroup))]
     public virtual void LoadSchema(XPathNavigator source)
     {
         schema.NsManager = new XmlNamespaceManager(source.NameTable);
@@ -63,7 +56,7 @@ public class SchemaLoader(Schema schema)
         if (it.Count == 1)
         {
             it.MoveNext();
-            LoadSchemaElement(it.Current);
+            LoadSchemaElement(it.CurrentOrThrow());
         }
         else
         {
@@ -73,7 +66,7 @@ public class SchemaLoader(Schema schema)
             {
                 libIt.MoveNext();
                 schema.IsLibrary = true;
-                LoadSchemaElement(libIt.Current);
+                LoadSchemaElement(libIt.CurrentOrThrow());
             }
             else
             {
@@ -91,12 +84,6 @@ public class SchemaLoader(Schema schema)
     /// Detects the Schematron namespace used in <paramref name="source"/> and compiles all
     /// instance-level XPath expressions against that namespace.
     /// </summary>
-    [MemberNotNull(nameof(schNs), nameof(mgr),
-        nameof(exprSchema), nameof(exprEmbeddedSchema), nameof(exprPhase),
-        nameof(exprPattern), nameof(exprAbstractRule), nameof(exprConcreteRule),
-        nameof(exprRuleExtends), nameof(exprAssert), nameof(exprReport),
-        nameof(exprLet), nameof(exprDiagnostic), nameof(exprParam),
-        nameof(exprLibrary), nameof(exprRulesContainer), nameof(exprGroup))]
     void DetectAndBuildExpressions(XPathNavigator source)
     {
         schNs = DetectSchematronNamespace(source);
@@ -141,8 +128,9 @@ public class SchemaLoader(Schema schema)
             var it = nav.SelectDescendants(XPathNodeType.Element, false);
             while (it.MoveNext())
             {
-                if (it.Current.NamespaceURI == Schema.IsoNamespace) return Schema.IsoNamespace;
-                if (it.Current.NamespaceURI == Schema.LegacyNamespace) return Schema.LegacyNamespace;
+                var current = it.CurrentOrThrow();
+                if (current.NamespaceURI == Schema.IsoNamespace) return Schema.IsoNamespace;
+                if (current.NamespaceURI == Schema.LegacyNamespace) return Schema.LegacyNamespace;
             }
         }
 
@@ -177,17 +165,18 @@ public class SchemaLoader(Schema schema)
     {
         while (children.MoveNext())
         {
-            if (children.Current.NamespaceURI == schNs)
+            var current = children.CurrentOrThrow();
+            if (current.NamespaceURI == schNs)
             {
-                if (children.Current.LocalName == "title")
+                if (current.LocalName == "title")
                 {
-                    schema.Title = children.Current.Value;
+                    schema.Title = current.Value;
                 }
-                else if (children.Current.LocalName == "ns")
+                else if (current.LocalName == "ns")
                 {
                     schema.NsManager.AddNamespace(
-                        children.Current.GetAttribute("prefix", string.Empty),
-                        children.Current.GetAttribute("uri", string.Empty));
+                        current.GetAttribute("prefix", string.Empty),
+                        current.GetAttribute("uri", string.Empty));
                 }
             }
         }
@@ -212,26 +201,28 @@ public class SchemaLoader(Schema schema)
 
         while (it.MoveNext())
         {
+            var current = it.CurrentOrThrow();
             var rule = pt.CreateRule();
             rule.SetContext(schema.NsManager);
-            rule.Id = it.Current.GetAttribute("id", string.Empty);
-            LoadAsserts(rule, it.Current);
-            LoadReports(rule, it.Current);
+            rule.Id = current.GetAttribute("id", string.Empty);
+            LoadAsserts(rule, current);
+            LoadReports(rule, current);
             abstracts.Add(rule.Id, rule);
         }
 
         // Also collect rules inside <rules> containers (implicitly abstract, even without @abstract="true")
         while (rulesContainerIt.MoveNext())
         {
-            var ruleId = rulesContainerIt.Current.GetAttribute("id", string.Empty);
+            var current = rulesContainerIt.CurrentOrThrow();
+            var ruleId = current.GetAttribute("id", string.Empty);
             if (ruleId.Length == 0) continue;
             if (abstracts.ContainsKey(ruleId)) continue;
 
             var rule = pt.CreateRule();
             rule.SetContext(schema.NsManager);
             rule.Id = ruleId;
-            LoadAsserts(rule, rulesContainerIt.Current);
-            LoadReports(rule, rulesContainerIt.Current);
+            LoadAsserts(rule, current);
+            LoadReports(rule, current);
             abstracts.Add(rule.Id, rule);
         }
     }
@@ -244,9 +235,10 @@ public class SchemaLoader(Schema schema)
 
         while (phases.MoveNext())
         {
-            var ph = schema.CreatePhase(phases.Current.GetAttribute("id", string.Empty));
-            ph.From = phases.Current.GetAttribute("from", string.Empty);
-            ph.When = phases.Current.GetAttribute("when", string.Empty);
+            var current = phases.CurrentOrThrow();
+            var ph = schema.CreatePhase(current.GetAttribute("id", string.Empty));
+            ph.From = current.GetAttribute("from", string.Empty);
+            ph.When = current.GetAttribute("when", string.Empty);
             schema.Phases.Add(ph);
         }
     }
@@ -265,25 +257,26 @@ public class SchemaLoader(Schema schema)
 
         while (patterns.MoveNext())
         {
+            var current = patterns.CurrentOrThrow();
             // Skip abstract patterns — they are templates; only instantiated via @is-a.
-            var isAbstract = patterns.Current.GetAttribute("abstract", string.Empty) == "true";
+            var isAbstract = current.GetAttribute("abstract", string.Empty) == "true";
             if (isAbstract) continue;
 
-            var pt = phase.CreatePattern(patterns.Current.GetAttribute("name", string.Empty),
-                patterns.Current.GetAttribute("id", string.Empty));
+            var pt = phase.CreatePattern(current.GetAttribute("name", string.Empty),
+                current.GetAttribute("id", string.Empty));
 
-            LoadLets(pt.Lets, patterns.Current);
+            LoadLets(pt.Lets, current);
 
-            var isA = patterns.Current.GetAttribute("is-a", string.Empty);
+            var isA = current.GetAttribute("is-a", string.Empty);
             if (isA.Length > 0)
             {
                 // Instantiate abstract pattern: collect param values, load rules from template.
-                var paramValues = LoadParams(patterns.Current);
+                var paramValues = LoadParams(current);
                 LoadRulesFromAbstractPattern(pt, isA, paramValues);
             }
             else
             {
-                LoadRules(pt, patterns.Current);
+                LoadRules(pt, current);
             }
 
             schema.Patterns.Add(pt);
@@ -301,7 +294,7 @@ public class SchemaLoader(Schema schema)
 
                 while (phases.MoveNext())
                 {
-                    schema.Phases[phases.Current.Value].Patterns.Add(pt);
+                    schema.Phases[phases.CurrentOrThrow().Value].Patterns.Add(pt);
                 }
             }
         }
@@ -309,12 +302,13 @@ public class SchemaLoader(Schema schema)
         // Load <group> elements (ISO Schematron 2025)
         while (groups.MoveNext())
         {
+            var current = groups.CurrentOrThrow();
             var grp = new Group(
-                groups.Current.GetAttribute("name", string.Empty),
-                groups.Current.GetAttribute("id", string.Empty));
+                current.GetAttribute("name", string.Empty),
+                current.GetAttribute("id", string.Empty));
 
-            LoadLets(grp.Lets, groups.Current);
-            LoadRules(grp, groups.Current);
+            LoadLets(grp.Lets, current);
+            LoadRules(grp, current);
             schema.Patterns.Add(grp);
             phase.Patterns.Add(grp);
 
@@ -325,7 +319,7 @@ public class SchemaLoader(Schema schema)
                 expr.SetContext(mgr);
                 var phases = filenav.Select(expr);
                 while (phases.MoveNext())
-                    schema.Phases[phases.Current.Value].Patterns.Add(grp);
+                    schema.Phases[phases.CurrentOrThrow().Value].Patterns.Add(grp);
             }
         }
 
@@ -338,10 +332,11 @@ public class SchemaLoader(Schema schema)
         var it = context.SelectChildren(XPathNodeType.Element);
         while (it.MoveNext())
         {
-            if (it.Current.LocalName == "param")
+            var current = it.CurrentOrThrow();
+            if (current.LocalName == "param")
             {
-                var name = it.Current.GetAttribute("name", string.Empty);
-                var value = it.Current.GetAttribute("value", string.Empty);
+                var name = current.GetAttribute("name", string.Empty);
+                var value = current.GetAttribute("value", string.Empty);
                 if (name.Length > 0)
                     d[name] = value;
             }
@@ -359,27 +354,28 @@ public class SchemaLoader(Schema schema)
         var it = filenav.Select(expr);
         if (!it.MoveNext()) return;
 
-        var rules = it.Current.Select(exprConcreteRule);
+        var rules = it.CurrentOrThrow().Select(exprConcreteRule);
         while (rules.MoveNext())
         {
+            var current = rules.CurrentOrThrow();
             var ruleContext = SubstituteParams(
-                rules.Current.GetAttribute("context", string.Empty), paramValues);
+                current.GetAttribute("context", string.Empty), paramValues);
 
             var rule = target.CreateRule(ruleContext);
-            rule.Id = rules.Current.GetAttribute("id", string.Empty);
+            rule.Id = current.GetAttribute("id", string.Empty);
             rule.SetContext(schema.NsManager);
-            LoadLets(rule.Lets, rules.Current);
+            LoadLets(rule.Lets, current);
 
-            var ruleFlag = rules.Current.GetAttribute("flag", string.Empty);
+            var ruleFlag = current.GetAttribute("flag", string.Empty);
             rule.Flag = string.IsNullOrWhiteSpace(ruleFlag)
                 ? []
                 : ruleFlag.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-            rule.VisitEach = rules.Current.GetAttribute("visit-each", string.Empty);
+            rule.VisitEach = current.GetAttribute("visit-each", string.Empty);
 
             // Load asserts/reports with parameter substitution applied to test expressions.
-            LoadAssertsWithSubstitution(rule, rules.Current, paramValues);
-            LoadReportsWithSubstitution(rule, rules.Current, paramValues);
+            LoadAssertsWithSubstitution(rule, current, paramValues);
+            LoadReportsWithSubstitution(rule, current, paramValues);
             target.Rules.Add(rule);
         }
     }
@@ -399,20 +395,21 @@ public class SchemaLoader(Schema schema)
 
         while (rules.MoveNext())
         {
-            var rule = pattern.CreateRule(rules.Current.GetAttribute("context", string.Empty));
-            rule.Id = rules.Current.GetAttribute("id", string.Empty);
+            var current = rules.CurrentOrThrow();
+            var rule = pattern.CreateRule(current.GetAttribute("context", string.Empty));
+            rule.Id = current.GetAttribute("id", string.Empty);
             rule.SetContext(schema.NsManager);
-            LoadLets(rule.Lets, rules.Current);
-            LoadExtends(rule, rules.Current);
-            LoadAsserts(rule, rules.Current);
-            LoadReports(rule, rules.Current);
+            LoadLets(rule.Lets, current);
+            LoadExtends(rule, current);
+            LoadAsserts(rule, current);
+            LoadReports(rule, current);
 
-            var ruleFlag = rules.Current.GetAttribute("flag", string.Empty);
+            var ruleFlag = current.GetAttribute("flag", string.Empty);
             rule.Flag = string.IsNullOrWhiteSpace(ruleFlag)
                 ? []
                 : ruleFlag.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-            rule.VisitEach = rules.Current.GetAttribute("visit-each", string.Empty);
+            rule.VisitEach = current.GetAttribute("visit-each", string.Empty);
 
             pattern.Rules.Add(rule);
         }
@@ -423,10 +420,11 @@ public class SchemaLoader(Schema schema)
         var it = context.Select(exprLet);
         while (it.MoveNext())
         {
+            var current = it.CurrentOrThrow();
             var let = new Let(
-                it.Current.GetAttribute("name", string.Empty),
-                it.Current.GetAttribute("value", string.Empty) is { Length: > 0 } value ? value : null,
-                it.Current.GetAttribute("as", string.Empty) is { Length: > 0 } a ? a : null);
+                current.GetAttribute("name", string.Empty),
+                current.GetAttribute("value", string.Empty) is { Length: > 0 } value ? value : null,
+                current.GetAttribute("as", string.Empty) is { Length: > 0 } a ? a : null);
 
             if (!lets.Contains(let.Name))
                 lets.Add(let);
@@ -440,9 +438,9 @@ public class SchemaLoader(Schema schema)
 
         while (extends.MoveNext())
         {
-            var ruleName = extends.Current.GetAttribute("rule", string.Empty);
-            if (abstracts?.ContainsKey(ruleName) == true)
-                rule.Extend((Rule)abstracts[ruleName]!);
+            var ruleName = extends.CurrentOrThrow().GetAttribute("rule", string.Empty);
+            if (abstracts?.ContainsKey(ruleName) == true && abstracts[ruleName] is Rule abstractRule)
+                rule.Extend(abstractRule);
             else
                 throw new BadSchemaException("The abstract rule with id=\"" + ruleName + "\" is used but not defined.");
         }
@@ -455,14 +453,15 @@ public class SchemaLoader(Schema schema)
 
         while (asserts.MoveNext())
         {
-            var testExpr = asserts.Current.GetAttribute("test", string.Empty);
-            var message = asserts.Current is IHasXmlNode node
-                ? node.GetNode().InnerXml
-                : asserts.Current.Value;
+            var current = asserts.CurrentOrThrow();
+            var testExpr = current.GetAttribute("test", string.Empty);
+            var message = current is IHasXmlNode node
+                ? node.GetRequiredNode().InnerXml
+                : current.Value;
 
             var asr = rule.CreateAssert(testExpr, message);
             asr.SetContext(schema.NsManager);
-            ReadTestAttributes(asr, asserts.Current);
+            ReadTestAttributes(asr, current);
             rule.Asserts.Add(asr);
         }
     }
@@ -474,14 +473,15 @@ public class SchemaLoader(Schema schema)
 
         while (reports.MoveNext())
         {
-            var testExpr = reports.Current.GetAttribute("test", string.Empty);
-            var message = reports.Current is IHasXmlNode node
-                ? node.GetNode().InnerXml
-                : reports.Current.Value;
+            var current = reports.CurrentOrThrow();
+            var testExpr = current.GetAttribute("test", string.Empty);
+            var message = current is IHasXmlNode node
+                ? node.GetRequiredNode().InnerXml
+                : current.Value;
 
             var rpt = rule.CreateReport(testExpr, message);
             rpt.SetContext(schema.NsManager);
-            ReadTestAttributes(rpt, reports.Current);
+            ReadTestAttributes(rpt, current);
             rule.Reports.Add(rpt);
         }
     }
@@ -491,12 +491,13 @@ public class SchemaLoader(Schema schema)
         var it = context.Select(exprDiagnostic);
         while (it.MoveNext())
         {
-            if (it.Current.GetAttribute("id", string.Empty) is not { Length: > 0 } id)
+            var current = it.CurrentOrThrow();
+            if (current.GetAttribute("id", string.Empty) is not { Length: > 0 } id)
                 continue;
 
-            var msg = it.Current is IHasXmlNode node
-                ? node.GetNode().InnerXml
-                : it.Current.Value;
+            var msg = current is IHasXmlNode node
+                ? node.GetRequiredNode().InnerXml
+                : current.Value;
             if (!schema.Diagnostics.Contains(id))
                 schema.Diagnostics.Add(new Diagnostic(id, msg));
         }
@@ -509,16 +510,17 @@ public class SchemaLoader(Schema schema)
 
         while (asserts.MoveNext())
         {
+            var current = asserts.CurrentOrThrow();
             var testExpr = SubstituteParams(
-                asserts.Current.GetAttribute("test", string.Empty), paramValues);
-            var message = asserts.Current is IHasXmlNode node
-                ? node.GetNode().InnerXml
-                : asserts.Current.Value;
+                current.GetAttribute("test", string.Empty), paramValues);
+            var message = current is IHasXmlNode node
+                ? node.GetRequiredNode().InnerXml
+                : current.Value;
             message = SubstituteParams(message, paramValues);
 
             var asr = rule.CreateAssert(testExpr, message);
             asr.SetContext(schema.NsManager);
-            ReadTestAttributes(asr, asserts.Current);
+            ReadTestAttributes(asr, current);
             rule.Asserts.Add(asr);
         }
     }
@@ -530,16 +532,17 @@ public class SchemaLoader(Schema schema)
 
         while (reports.MoveNext())
         {
+            var current = reports.CurrentOrThrow();
             var testExpr = SubstituteParams(
-                reports.Current.GetAttribute("test", string.Empty), paramValues);
-            var message = reports.Current is IHasXmlNode node
-                ? node.GetNode().InnerXml
-                : reports.Current.Value;
+                current.GetAttribute("test", string.Empty), paramValues);
+            var message = current is IHasXmlNode node
+                ? node.GetRequiredNode().InnerXml
+                : current.Value;
             message = SubstituteParams(message, paramValues);
 
             var rpt = rule.CreateReport(testExpr, message);
             rpt.SetContext(schema.NsManager);
-            ReadTestAttributes(rpt, reports.Current);
+            ReadTestAttributes(rpt, current);
             rule.Reports.Add(rpt);
         }
     }
@@ -566,10 +569,11 @@ public class SchemaLoader(Schema schema)
         var it = context.SelectChildren(XPathNodeType.Element);
         while (it.MoveNext())
         {
-            if (it.Current.LocalName == "param" && Schema.IsSchematronNamespace(it.Current.NamespaceURI))
+            var current = it.CurrentOrThrow();
+            if (current.LocalName == "param" && Schema.IsSchematronNamespace(current.NamespaceURI))
             {
-                var name = it.Current.GetAttribute("name", string.Empty);
-                var value = it.Current.GetAttribute("value", string.Empty);
+                var name = current.GetAttribute("name", string.Empty);
+                var value = current.GetAttribute("value", string.Empty);
 
                 if (name.Length > 0 && !schema.Params.Contains(name))
                 {
@@ -587,9 +591,10 @@ public class SchemaLoader(Schema schema)
         var children = context.SelectChildren(XPathNodeType.Element);
         while (children.MoveNext())
         {
-            if (children.Current.LocalName != "extends") continue;
-            if (!Schema.IsSchematronNamespace(children.Current.NamespaceURI)) continue;
-            var href = children.Current.GetAttribute("href", string.Empty);
+            var current = children.CurrentOrThrow();
+            if (current.LocalName != "extends") continue;
+            if (!Schema.IsSchematronNamespace(current.NamespaceURI)) continue;
+            var href = current.GetAttribute("href", string.Empty);
             if (string.IsNullOrEmpty(href)) continue;
 
             // Resolve the href relative to the schema's base URI

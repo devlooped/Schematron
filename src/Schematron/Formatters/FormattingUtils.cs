@@ -53,7 +53,12 @@ public class FormattingUtils
         {
             if (context.Prefix == string.Empty)
             {
-                pref = source.GetContext()!.LookupPrefix(source.GetContext()!.NameTable.Get(context.NamespaceURI));
+                var sourceContext = source.GetContext();
+                var nameTable = sourceContext?.NameTable;
+                var namespaceName = nameTable?.Get(context.NamespaceURI);
+                pref = sourceContext is null || namespaceName is null
+                    ? string.Empty
+                    : sourceContext.LookupPrefix(namespaceName) ?? string.Empty;
             }
             else
             {
@@ -62,9 +67,9 @@ public class FormattingUtils
 
             if (!namespaces.ContainsKey(context.NamespaceURI))
             {
-                namespaces.Add(context.NamespaceURI, pref ?? "");
+                namespaces.Add(context.NamespaceURI, pref);
             }
-            else if (((string)namespaces[context.NamespaceURI]) != pref &&
+            else if ((namespaces[context.NamespaceURI] as string ?? string.Empty) != pref &&
                 !namespaces.ContainsKey(context.NamespaceURI + ":" + pref))
             {
                 namespaces.Add(context.NamespaceURI + " " + pref, pref);
@@ -132,7 +137,7 @@ public class FormattingUtils
         // Get the element name
         XmlQualifiedName name;
         if (ctx.NamespaceURI != string.Empty)
-            name = new XmlQualifiedName(ctx.LocalName, namespaces[ctx.NamespaceURI].ToString());
+            name = new XmlQualifiedName(ctx.LocalName, namespaces[ctx.NamespaceURI] as string ?? string.Empty);
         else
             name = new XmlQualifiedName(ctx.LocalName);
 
@@ -165,7 +170,7 @@ public class FormattingUtils
         foreach (var key in keys)
         {
             sb.Append(spacing).Append("xmlns");
-            pref = namespaces[key].ToString();
+            pref = namespaces[key] as string ?? string.Empty;
 
             if (pref != string.Empty)
                 sb.Append(":").Append(namespaces[key]);
@@ -173,7 +178,7 @@ public class FormattingUtils
             sb.Append("=\"");
 
             if (pref != string.Empty)
-                sb.Append(removeprefix.Replace(key.ToString(), string.Empty));
+                sb.Append(removeprefix.Replace(key?.ToString() ?? string.Empty, string.Empty));
             else
                 sb.Append(key);
 

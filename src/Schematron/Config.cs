@@ -35,7 +35,7 @@ public class Config
         full.Phases.Add(full.CreatePhase(Phase.All));
 
         //TODO: should we move all the schema language elements to a resource file?
-        navigator = new XmlDocument().CreateNavigator();
+        navigator = new XmlDocument().CreateRequiredNavigator();
         navigator.NameTable.Add("active");
         navigator.NameTable.Add("pattern");
         navigator.NameTable.Add("assert");

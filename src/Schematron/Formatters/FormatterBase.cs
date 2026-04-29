@@ -2,6 +2,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.XPath;
+using Schematron;
 
 namespace Schematron.Formatters;
 /// <summary>
@@ -115,7 +116,7 @@ public abstract class FormatterBase : IFormatter
                     // name of the first node, which is compatible with XSLT implementation.
                     var nodes = (XPathNodeIterator)context.Evaluate(nameExpr);
                     if (nodes.MoveNext())
-                        result = nodes.Current.Name;
+                        result = nodes.CurrentOrThrow().Name;
                 }
                 else
                 {
@@ -136,7 +137,7 @@ public abstract class FormatterBase : IFormatter
                     var nodes = (XPathNodeIterator)context.Evaluate(selectExpr);
                     result = string.Empty;
                     while (nodes.MoveNext())
-                        result += nodes.Current.Value;
+                        result += nodes.CurrentOrThrow().Value;
                 }
                 else
                 {
