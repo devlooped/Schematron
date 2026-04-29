@@ -19,13 +19,6 @@ public class InvalidExpressionException : ApplicationException
     public InvalidExpressionException(string message) : base(message) { }
 
     /// <summary>
-    /// For serialization purposes.
-    /// </summary>
-    /// <param name="info">Info</param>
-    /// <param name="context">Context</param>
-    protected InvalidExpressionException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-
-    /// <summary>
     /// Initializes an instance of the class with a specified error message
     /// and a reference to the inner exception that is the cause for this exception.
     /// </summary>

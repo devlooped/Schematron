@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Schematron;
 
@@ -14,7 +15,8 @@ public class PhaseCollection : DictionaryBase
     /// <summary>Required indexer.</summary>
     public Phase this[string key]
     {
-        get { return (Phase)Dictionary[key]; }
+        get => Dictionary[key] as Phase
+            ?? throw new KeyNotFoundException($"The phase '{key}' was not found.");
         set { Dictionary[key] = value; }
     }
 

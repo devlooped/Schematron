@@ -74,7 +74,7 @@ public class Schema
     {
         var doc = new XmlDocument(schema.NameTable);
         doc.Load(schema);
-        Load(doc.CreateNavigator());
+        Load(doc.CreateRequiredNavigator());
     }
 
     /// <summary />

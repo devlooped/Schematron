@@ -184,11 +184,12 @@ class SyncEvaluationContext : EvaluationContextBase
         // The navigator doesn't contain line info
         while (nodes.MoveNext())
         {
-            if (!Matched.IsMatched(nodes.Current))
+            var current = nodes.CurrentOrThrow();
+            if (!Matched.IsMatched(current))
             {
                 // Add the navigator to the list to be evaluated and to 
                 // the list of pattern-level nodes matched so far.
-                var curr = nodes.Current.Clone();
+                var curr = current.Clone();
                 evaluables.Add(curr);
                 Matched.AddMatched(curr);
             }
@@ -206,7 +207,7 @@ class SyncEvaluationContext : EvaluationContextBase
                 {
                     var visitNodes = contextNode.Select(visitExpr);
                     while (visitNodes.MoveNext())
-                        expanded.Add(visitNodes.Current.Clone());
+                        expanded.Add(visitNodes.CurrentOrThrow().Clone());
                 }
                 evaluables = expanded;
             }
