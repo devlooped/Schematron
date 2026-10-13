@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGetizer" Version="1.5.0" />
+    <PackageReference Include="NuGetizer" Version="1.5.1" />
     <InternalsVisibleTo Include="Schematron.Tests" />
   </ItemGroup>
 
